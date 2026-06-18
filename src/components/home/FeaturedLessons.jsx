@@ -1,0 +1,83 @@
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Container } from '@/src/components/shared/Container'
+import { SectionHeading } from '@/src/components/shared/SectionHeading'
+import { LessonGridSkeleton } from '@/src/components/shared/SkeletonLoader'
+import { ErrorState } from '@/src/components/shared/ErrorState'
+import { LessonCard } from '@/src/components/lessons/LessonCard'
+import { getFeaturedLessons } from '@/src/services/lessonApi'
+import { usePremium } from '@/src/hooks/usePremium'
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+}
+
+export function FeaturedLessons() {
+  const { isPremium } = usePremium()
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['lessons', 'featured'],
+    queryFn: getFeaturedLessons,
+  })
+
+  const lessons = data?.lessons || data || []
+
+  return (
+    <section className="py-16 bg-background">
+      <Container>
+        <SectionHeading
+          title="Featured Lessons"
+          subtitle="Hand-picked stories from our community that made a real difference."
+        />
+
+        {isLoading && <LessonGridSkeleton count={3} />}
+
+        {isError && (
+          <ErrorState
+            title="Could not load featured lessons"
+            error={error}
+            onRetry={refetch}
+          />
+        )}
+
+        {!isLoading && !isError && lessons.length > 0 && (
+          <>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {lessons.slice(0, 6).map((lesson) => (
+                <motion.div key={lesson._id} variants={cardVariants}>
+                  <LessonCard lesson={lesson} isPremiumUser={isPremium} />
+                </motion.div>
+              ))}
+            </motion.div>
+
+            <div className="mt-10 flex justify-center">
+              <Button variant="outline" asChild className="gap-2">
+                <Link href="/public-lessons">
+                  View all lessons
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </>
+        )}
+      </Container>
+    </section>
+  )
+}
