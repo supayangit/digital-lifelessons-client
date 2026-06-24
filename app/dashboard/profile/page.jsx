@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -101,19 +101,29 @@ export default function ProfilePage() {
   })
 
   const { mutate: updateProfile, isPending } = useMutation({
-    mutationFn: (profileData) => updateMyProfile(profileData, axiosSecure),
-    onSuccess: () => {
+    mutationFn: (profileData) => updateMyProfile(profileData),
+    onSuccess: (updatedProfile) => {
       toast.success('Profile updated!')
       queryClient.invalidateQueries({ queryKey: ['my-profile'] })
       setEditing(false)
+      // Reset form with updated profile data
+      reset({
+        name: updatedProfile?.name || user?.name || '',
+        bio: updatedProfile?.bio || '',
+        image: updatedProfile?.image || '',
+      })
     },
-    onError: () => toast.error('Failed to update profile'),
+    onError: (error) => {
+      const message = error?.response?.data?.message || 'Failed to update profile'
+      toast.error(message)
+    },
   })
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -123,11 +133,27 @@ export default function ProfilePage() {
     },
   })
 
+  // Update form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      reset({
+        name: profile.name || user?.name || '',
+        bio: profile.bio || '',
+        image: profile.image || '',
+      })
+    }
+  }, [profile, user, reset])
+
   const displayProfile = profile || MOCK_PROFILE
   const displayLessons = Array.isArray(lessons) ? lessons : MOCK_LESSONS
 
-  const initials = displayProfile.name
-    ? displayProfile.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+  // Use user session data where available
+  const displayName = profile?.name || user?.name || displayProfile.name
+  const displayEmail = user?.email || profile?.email || displayProfile.email
+  const displayImage = user?.image || profile?.image || null
+
+  const initials = displayName
+    ? displayName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
 
   return (
@@ -142,7 +168,7 @@ export default function ProfilePage() {
                 <Skeleton className="h-20 w-20 rounded-full" />
               ) : (
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={displayProfile.image} alt={displayProfile.name} />
+                  <AvatarImage src={displayImage || undefined} alt={displayName} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
                     {initials}
                   </AvatarFallback>
@@ -167,7 +193,7 @@ export default function ProfilePage() {
               ) : (
                 <>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-xl font-bold font-serif text-foreground">{displayProfile.name}</h1>
+                    <h1 className="text-xl font-bold font-serif text-foreground">{displayName}</h1>
                     {isPremiumRole && (
                       <Badge className="flex items-center gap-1 bg-accent text-accent-foreground border-0 text-xs">
                         <Crown className="h-3 w-3" /> Premium
@@ -177,9 +203,9 @@ export default function ProfilePage() {
                       <Badge variant="destructive" className="text-xs">Admin</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{displayProfile.email || user?.email}</p>
-                  {displayProfile.bio && (
-                    <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{displayProfile.bio}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{displayEmail}</p>
+                  {profile?.bio && (
+                    <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{profile.bio}</p>
                   )}
                 </>
               )}

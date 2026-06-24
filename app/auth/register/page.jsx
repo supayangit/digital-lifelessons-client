@@ -10,12 +10,13 @@ import { Eye, EyeOff, BookOpen, Globe, CheckCircle2, XCircle } from 'lucide-reac
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { signIn, signUp, signInWithGoogle } from '@/lib/auth-client'
+import { useAuth } from '@/src/hooks/useAuth'
 import toast from 'react-hot-toast'
 
 const registerSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
+    image: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     email: z.email('Enter a valid email address'),
     password: z
       .string()
@@ -40,6 +41,7 @@ function PasswordRule({ met, label }) {
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { signup, signInWithGoogle } = useAuth()
   
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,10 +54,10 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm({ resolver: zodResolver(registerSchema) })
 
-  const onSubmit = async ({ name, email, password }) => {
+  const onSubmit = async ({ name, email, password, image }) => {
     setLoading(true)
     try {
-      const result = await signUp.email({ name, email, password })
+      const result = await signup({ name, email, password, image })
       if (result?.error) {
         toast.error(result.error.message || 'Registration failed')
       } else {
@@ -72,17 +74,7 @@ export default function RegisterPage() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     try {
-      // Use the better-auth client social sign-in to trigger Google OAuth
-      // include a callbackURL so the server redirects back to the app
-      const result = await signIn.social({
-        provider: 'google',
-        callbackURL: `${typeof window !== 'undefined' ? window.location.origin : ''}/`,
-      })
-
-      if (result?.error) {
-        toast.error(result.error.message || 'Google sign up failed.')
-        setGoogleLoading(false)
-      }
+      await signInWithGoogle()
     } catch {
       toast.error('Google sign up failed.')
       setGoogleLoading(false)
@@ -142,6 +134,26 @@ export default function RegisterPage() {
               {errors.name && (
                 <p id="name-error" className="mt-1.5 text-xs text-destructive" role="alert">
                   {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Avatar URL */}
+            <div>
+              <label htmlFor="image" className="block text-sm font-medium text-foreground mb-1.5">
+                Avatar URL (optional)
+              </label>
+              <Input
+                id="image"
+                type="url"
+                autoComplete="image"
+                placeholder="https://example.com/avatar.jpg"
+                {...register('image')}
+                aria-describedby={errors.image ? 'image-error' : undefined}
+              />
+              {errors.image && (
+                <p id="image-error" className="mt-1.5 text-xs text-destructive" role="alert">
+                  {errors.image.message}
                 </p>
               )}
             </div>

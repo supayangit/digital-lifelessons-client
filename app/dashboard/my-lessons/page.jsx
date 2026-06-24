@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -33,25 +33,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAxiosSecure } from '@/src/hooks/useAxiosSecure'
 import { getMyLessons, deleteLesson, toggleVisibility, toggleAccessLevel } from '@/src/services/lessonApi'
 
-/* ── Mock data so the table renders without a backend ── */
-const MOCK_LESSONS = [
-  {
-    _id: '1', title: 'Embrace Failure Early', category: 'Career', tone: 'Reflective',
-    visibility: 'public', accessLevel: 'free', likesCount: 12, savesCount: 5, commentsCount: 3,
-    createdAt: '2025-06-10',
-  },
-  {
-    _id: '2', title: 'The Power of Saying No', category: 'Mindset', tone: 'Motivational',
-    visibility: 'public', accessLevel: 'premium', likesCount: 28, savesCount: 14, commentsCount: 7,
-    createdAt: '2025-06-08',
-  },
-  {
-    _id: '3', title: 'Money Habits That Stick', category: 'Finance', tone: 'Cautionary',
-    visibility: 'private', accessLevel: 'free', likesCount: 6, savesCount: 2, commentsCount: 1,
-    createdAt: '2025-06-05',
-  },
-]
-
 function LessonRowSkeleton() {
   return (
     <TableRow>
@@ -69,11 +50,10 @@ export default function MyLessonsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['my-lessons'],
     queryFn: () => getMyLessons(axiosSecure),
-    placeholderData: MOCK_LESSONS,
     retry: false,
   })
 
-  const lessons = data || MOCK_LESSONS
+  const lessons = Array.isArray(data) ? data : data?.lessons || []
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteLesson(id, axiosSecure),
@@ -91,7 +71,7 @@ export default function MyLessonsPage() {
       await queryClient.cancelQueries({ queryKey: ['my-lessons'] })
       const prev = queryClient.getQueryData(['my-lessons'])
       queryClient.setQueryData(['my-lessons'], (old) =>
-        (old || MOCK_LESSONS).map((l) =>
+        (old || []).map((l) =>
           l._id === id ? { ...l, visibility: l.visibility === 'public' ? 'private' : 'public' } : l
         )
       )
@@ -110,7 +90,7 @@ export default function MyLessonsPage() {
       await queryClient.cancelQueries({ queryKey: ['my-lessons'] })
       const prev = queryClient.getQueryData(['my-lessons'])
       queryClient.setQueryData(['my-lessons'], (old) =>
-        (old || MOCK_LESSONS).map((l) =>
+        (old || []).map((l) =>
           l._id === id ? { ...l, accessLevel: l.accessLevel === 'free' ? 'premium' : 'free' } : l
         )
       )

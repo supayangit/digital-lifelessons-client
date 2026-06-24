@@ -1,5 +1,6 @@
 'use client'
 
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +10,7 @@ import { LessonForm } from '@/src/components/dashboard/LessonForm'
 import { useAxiosSecure } from '@/src/hooks/useAxiosSecure'
 import { useRole } from '@/src/hooks/useRole'
 import { createLesson } from '@/src/services/lessonApi'
+
 
 export default function AddLessonPage() {
   const router = useRouter()
@@ -41,11 +43,17 @@ export default function AddLessonPage() {
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">Lesson Details</CardTitle>
+
+
           <CardDescription>
             Fill in the details below. Fields marked with{' '}
             <span className="text-destructive">*</span> are required.
           </CardDescription>
+
+
         </CardHeader>
+
+        
         <CardContent>
           <LessonForm
             onSubmit={mutate}

@@ -24,7 +24,14 @@ const CATEGORIES = [
 ]
 
 const TONES = [
-  'Reflective', 'Hopeful', 'Cautionary', 'Motivational', 'Melancholic', 'Humorous',
+  "Inspiring",
+  "Reflective",
+  "Humorous",
+  "Cautionary",
+  "Motivational",
+  "Grateful",
+  "Sad",
+  "Neutral"
 ]
 
 export const lessonSchema = z.object({
@@ -69,8 +76,13 @@ export function LessonForm({ defaultValues, onSubmit, isPremiumUser, isSubmittin
 
   const accessLevel = watch('accessLevel')
 
+  const handleFormSubmit = (data) => {
+    console.log('Submitted Lesson Data:', data)
+    onSubmit(data)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       {/* Title */}
       <div className="space-y-1.5">
         <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>

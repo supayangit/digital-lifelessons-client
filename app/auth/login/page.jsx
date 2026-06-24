@@ -26,7 +26,7 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
-  const { signInWithEmail, signInWithGoogle } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -40,7 +40,7 @@ function LoginForm() {
   const onSubmit = async ({ email, password }) => {
     setLoading(true)
     try {
-      const result = await signInWithEmail({ email, password })
+      const result = await login({ email, password })
       if (result?.error) {
         toast.error(result.error.message || 'Invalid credentials')
       } else {

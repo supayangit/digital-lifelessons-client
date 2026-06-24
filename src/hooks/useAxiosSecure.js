@@ -1,11 +1,13 @@
 'use client'
 
+
 import { useMemo } from 'react'
 import axios from 'axios'
 import { useAuth } from './useAuth'
-import { authClient } from '@/src/services/authApi'
+import { authClient } from '@/lib/auth-client'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
 
 /**
  * Returns an axios instance that automatically attaches the session token.

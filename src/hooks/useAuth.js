@@ -1,7 +1,6 @@
 'use client'
 
-import { useSession } from '@/src/services/authApi'
-import { logout, signInWithEmail, signInWithGoogle, registerWithEmail } from '@/src/services/authApi'
+import { useSession, login, signup, logout, signInWithGoogle } from '@/lib/auth-client'
 
 /**
  * Primary auth hook.
@@ -18,9 +17,9 @@ export function useAuth() {
     isPending,
     error,
     isAuthenticated: Boolean(user),
-    signInWithEmail,
+    login,
+    signup,
     signInWithGoogle,
-    registerWithEmail,
     logout,
   }
 }

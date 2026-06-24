@@ -1,5 +1,6 @@
 import axiosPublic from './axios'
 
+
 /**
  * Fetch all public lessons with optional filters.
  * @param {Object} params - { search, category, tone, sort, page, limit }
@@ -89,5 +90,7 @@ export async function toggleAccessLevel(id, axiosSecure) {
  */
 export async function getMyLessons(axiosSecure) {
   const { data } = await axiosSecure.get('/api/lessons/my-lessons')
-  return data
+  if (Array.isArray(data)) return data
+  if (data?.lessons) return data.lessons
+  return []
 }

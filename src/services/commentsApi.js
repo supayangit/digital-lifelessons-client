@@ -8,7 +8,7 @@ export async function getComments(lessonId) {
   return data
 }
 
-export async function postComment(lessonId, content, axiosSecure) {
+export async function addComment(lessonId, content, axiosSecure) {
   const { data } = await axiosSecure.post('/api/comments', { lessonId, content })
   return data
 }

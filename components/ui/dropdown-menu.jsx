@@ -71,10 +71,12 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  asChild,
   ...props
 }) {
   return (
     <MenuPrimitive.Item
+      asChild={asChild}
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}

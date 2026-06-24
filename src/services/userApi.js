@@ -1,4 +1,5 @@
 import axiosPublic from './axios'
+import { updateUserProfile } from '@/lib/auth-client'
 
 /**
  * Fetch the current user's profile.
@@ -10,12 +11,10 @@ export async function getMyProfile(axiosSecure) {
 }
 
 /**
- * Update the current user's profile.
+ * Update the current user's profile via backend API on port 5000.
  */
-export async function updateMyProfile(profileData, axiosSecure) {
-  const instance = axiosSecure || axiosPublic
-  const { data } = await instance.put('/api/users/me', profileData)
-  return data
+export async function updateMyProfile(profileData) {
+  return await updateUserProfile(profileData)
 }
 
 /**

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 const PROTECTED_ROUTES = ['/add-lesson', '/my-lessons', '/dashboard']
 
 /**
- * Routes only accessible to unauthenticated users.
+ * Routes only accessible to unauthenticated user.
  */
 const AUTH_ROUTES = ['/auth/login', '/auth/register']
 
@@ -27,7 +27,7 @@ export async function middleware(request) {
   const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route))
   const isAuthPage = AUTH_ROUTES.some((route) => pathname.startsWith(route))
 
-  // Redirect unauthenticated users away from protected routes
+  // Redirect unauthenticated user away from protected routes
   if (isProtected && !isAuthenticated) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
@@ -35,10 +35,11 @@ export async function middleware(request) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages
-  if (isAuthPage && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  // Redirect authenticated user away from auth pages
+  // NOTE: previously we redirected authenticated users away from auth pages.
+  // That caused some valid users (or stale tokens) to be redirected unexpectedly.
+  // To allow reliable access to `/auth/login` and `/auth/register`, do not
+  // automatically redirect here. Keep protected-route redirect above.
 
   return NextResponse.next()
 }
