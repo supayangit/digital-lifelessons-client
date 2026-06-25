@@ -26,16 +26,25 @@ export function LessonCard({ lesson, isPremiumUser = false }) {
     tone,
     image,
     author,
+    creatorName,
+    creatorPhoto,
     isPremium,
     likesCount = 0,
+    favoritesCount = 0,
     savesCount = 0,
     commentsCount = 0,
   } = lesson
 
+  const lessonAuthor = {
+    name: author?.name || creatorName,
+    image: author?.image || creatorPhoto,
+  }
+
+  const displayFavorites = typeof favoritesCount === 'number' ? favoritesCount : savesCount
   const isLocked = isPremium && !isPremiumUser
 
-  const authorInitials = author?.name
-    ? author.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+  const authorInitials = lessonAuthor?.name
+    ? lessonAuthor.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
 
   return (
@@ -123,10 +132,10 @@ export function LessonCard({ lesson, isPremiumUser = false }) {
           {/* Author */}
           <div className="flex items-center gap-1.5 min-w-0">
             <Avatar className="h-6 w-6 flex-shrink-0">
-              <AvatarImage src={author?.image} alt={author?.name || 'Author'} />
+              <AvatarImage src={lessonAuthor?.image} alt={lessonAuthor?.name || 'Author'} />
               <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{authorInitials}</AvatarFallback>
             </Avatar>
-            <span className="text-xs text-muted-foreground truncate">{author?.name || 'Anonymous'}</span>
+            <span className="text-xs text-muted-foreground truncate">{lessonAuthor?.name || 'Anonymous'}</span>
           </div>
 
           {/* Stats */}
@@ -137,7 +146,7 @@ export function LessonCard({ lesson, isPremiumUser = false }) {
             </span>
             <span className="flex items-center gap-1">
               <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
-              {savesCount}
+              {displayFavorites}
             </span>
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
