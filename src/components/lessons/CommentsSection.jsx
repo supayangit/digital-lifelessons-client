@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect, useRef } from 'react'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { MessageSquare, Trash2, Send, Loader2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -29,21 +29,25 @@ const MOCK_COMMENTS = [
 ]
 
 function CommentItem({ comment, currentUserId, onDelete }) {
-  const initials = comment.author?.name
-    ? comment.author.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+  const authorName = comment.author?.name || comment.userName || comment.user?.name || 'Anonymous'
+  const authorImage = comment.author?.image || comment.userPhoto || comment.user?.image || null
+  const authorId = comment.author?._id || comment.userId || comment.user?._id
+
+  const initials = authorName
+    ? authorName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'
 
-  const isOwn = currentUserId && comment.author?._id === currentUserId
+  const isOwn = currentUserId && authorId === currentUserId
 
   return (
     <div className="flex gap-3">
       <Avatar className="h-8 w-8 flex-shrink-0 mt-0.5">
-        <AvatarImage src={comment.author?.image} alt={comment.author?.name || 'User'} />
+        <AvatarImage src={authorImage} alt={authorName} />
         <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm font-medium text-foreground">{comment.author?.name || 'Anonymous'}</span>
+          <span className="text-sm font-medium text-foreground">{authorName}</span>
           <span className="text-xs text-muted-foreground flex-shrink-0">
             {new Date(comment.createdAt).toLocaleDateString()}
           </span>
@@ -75,60 +79,99 @@ export function CommentsSection({ lessonId }) {
   const { user, isAuthenticated } = useAuth()
   const [draft, setDraft] = useState('')
 
-  const { data: comments, isLoading } = useQuery({
+  const sentinelRef = useRef(null)
+  const nextPageRequestRef = useRef(false)
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['comments', lessonId],
-    queryFn: () => getComments(lessonId),
-    placeholderData: MOCK_COMMENTS,
-    refetchInterval: 15000,       // real-time: refresh every 15 s
+    queryFn: ({ pageParam = 1 }) => getComments(lessonId, pageParam, 10),
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasNextPage) return lastPage.pagination.page + 1
+      return undefined
+    },
+    refetchInterval: 15000,
     retry: false,
-    onSuccess: (data) => {
-      console.log(
-        `[CommentsSection] Loaded comments for lesson ${lessonId}`,
-        getCommentArray(data).length,
-        'items'
-      )
+    onSuccess: (d) => {
+      const count = d?.pages?.flatMap((p) => p.comments ?? []).length ?? 0
+      console.log(`[CommentsSection] Loaded comments for lesson ${lessonId}`, count, 'items')
     },
     onError: (err) => {
       console.error(`[CommentsSection] Failed to load comments for lesson ${lessonId}`, err)
     },
   })
 
-  const getCommentArray = (value) =>
-    Array.isArray(value)
-      ? value
-      : Array.isArray(value?.comments)
-      ? value.comments
-      : Array.isArray(value?.data?.comments)
-      ? value.data.comments
-      : []
+  const commentPages = data?.pages ?? []
+  const commentList = commentPages.flatMap((p) => p?.comments ?? [])
 
-  const commentList = comments === undefined
-    ? MOCK_COMMENTS
-    : getCommentArray(comments)
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage &&
+            !nextPageRequestRef.current
+          ) {
+            nextPageRequestRef.current = true
+            fetchNextPage().finally(() => {
+              nextPageRequestRef.current = false
+            })
+          }
+        })
+      },
+      { root: null, rootMargin: '200px', threshold: 0.1 }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const postMutation = useMutation({
     mutationFn: (content) => addComment(lessonId, content, axiosSecure),
     onMutate: async (content) => {
       console.log(`[CommentsSection] Optimistically adding comment for lesson ${lessonId}`, { content })
       await queryClient.cancelQueries({ queryKey: ['comments', lessonId] })
-      const prev = queryClient.getQueryData(['comments', lessonId])
+      const previous = queryClient.getQueryData(['comments', lessonId])
       const optimistic = {
         _id: `opt-${Date.now()}`,
         content,
-        author: { _id: user?._id, name: user?.name, image: user?.image },
+        userId: user?._id,
+        userName: user?.name,
+        userPhoto: user?.image,
         createdAt: new Date().toISOString(),
       }
-      queryClient.setQueryData(['comments', lessonId], (old) => [
-        ...getCommentArray(old || MOCK_COMMENTS),
-        optimistic,
-      ])
+
+      const newData = previous
+        ? {
+            ...previous,
+            pages: previous.pages.map((pg, idx) =>
+              idx === 0
+                ? { ...pg, comments: [...(pg.comments || []), optimistic] }
+                : pg
+            ),
+          }
+        : { pages: [{ comments: [optimistic], pagination: { page: 1, hasNextPage: false } }], pageParams: [1] }
+
+      queryClient.setQueryData(['comments', lessonId], newData)
       setDraft('')
-      return { prev }
+      return { previous }
     },
     onError: (_err, _content, ctx) => {
       console.error(`[CommentsSection] Failed to post comment for lesson ${lessonId}`, _err)
-      const previousComments = ctx?.prev ?? queryClient.getQueryData(['comments', lessonId]) ?? MOCK_COMMENTS
-      queryClient.setQueryData(['comments', lessonId], previousComments)
+      const previous = ctx?.previous ?? queryClient.getQueryData(['comments', lessonId])
+      if (previous) queryClient.setQueryData(['comments', lessonId], previous)
       toast.error('Failed to post comment')
     },
     onSuccess: () => {
@@ -143,16 +186,17 @@ export function CommentsSection({ lessonId }) {
     onMutate: async (commentId) => {
       console.log(`[CommentsSection] Optimistically deleting comment ${commentId} for lesson ${lessonId}`)
       await queryClient.cancelQueries({ queryKey: ['comments', lessonId] })
-      const prev = queryClient.getQueryData(['comments', lessonId])
-      queryClient.setQueryData(['comments', lessonId], (old) =>
-        getCommentArray(old || MOCK_COMMENTS).filter((c) => c._id !== commentId)
-      )
-      return { prev }
+      const previous = queryClient.getQueryData(['comments', lessonId])
+      const newData = previous
+        ? { ...previous, pages: previous.pages.map((pg) => ({ ...pg, comments: (pg.comments || []).filter((c) => c._id !== commentId) })) }
+        : previous
+      queryClient.setQueryData(['comments', lessonId], newData)
+      return { previous }
     },
     onError: (_err, _id, ctx) => {
       console.error(`[CommentsSection] Failed to delete comment for lesson ${lessonId}`, _err)
-      const previousComments = ctx?.prev ?? queryClient.getQueryData(['comments', lessonId]) ?? MOCK_COMMENTS
-      queryClient.setQueryData(['comments', lessonId], previousComments)
+      const previous = ctx?.previous ?? queryClient.getQueryData(['comments', lessonId])
+      if (previous) queryClient.setQueryData(['comments', lessonId], previous)
       toast.error('Failed to delete comment')
     },
     onSuccess: () => {
@@ -237,16 +281,33 @@ export function CommentsSection({ lessonId }) {
           No comments yet. Be the first to share your thoughts!
         </p>
       ) : (
-        <div className="space-y-5">
-          {displayComments.map((comment) => (
-            <CommentItem
-              key={comment._id}
-              comment={comment}
-              currentUserId={user?.id || user?._id}
-              onDelete={(id) => deleteMutation.mutate(id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-5">
+            {displayComments.map((comment) => (
+              <CommentItem
+                key={comment._id}
+                comment={comment}
+                currentUserId={user?.id || user?._id}
+                onDelete={(id) => deleteMutation.mutate(id)}
+              />
+            ))}
+          </div>
+
+          <div ref={sentinelRef} className="h-1" />
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            {isFetchingNextPage && (
+              <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="inline-block rounded-full border-primary/30 border-t-primary animate-spin h-5 w-5" aria-hidden="true" />
+                Loading more comments…
+              </span>
+            )}
+
+            {!isFetchingNextPage && !hasNextPage && (
+              <span className="text-sm text-muted-foreground">No more comments.</span>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

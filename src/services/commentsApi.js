@@ -3,8 +3,11 @@
  */
 import axiosPublic from './axios'
 
-export async function getComments(lessonId) {
-  const { data } = await axiosPublic.get(`/api/comments/${lessonId}`)
+export async function getComments(lessonId, page = 1, limit = 10) {
+  console.log(`[CommentsAPI] Fetching comments for lesson ${lessonId} page=${page} limit=${limit}`)
+  const { data } = await axiosPublic.get(`/api/comments/${lessonId}`, {
+    params: { page, limit },
+  })
   console.log(`[CommentsAPI] Received comments for lesson ${lessonId}`, data)
   return data
 }
