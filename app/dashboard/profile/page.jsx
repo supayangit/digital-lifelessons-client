@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -28,42 +28,14 @@ import { LessonCard } from '@/src/components/lessons/LessonCard'
 import { useAxiosSecure } from '@/src/hooks/useAxiosSecure'
 import { useAuth } from '@/src/hooks/useAuth'
 import { useRole } from '@/src/hooks/useRole'
-import { getMyProfile, updateMyProfile } from '@/src/services/userApi'
-import { getMyLessons } from '@/src/services/lessonApi'
+import { getMyProfile, getMyLessons, updateMyProfile } from '@/src/services/userApi'
+
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long'),
   bio: z.string().max(300, 'Bio too long').optional().or(z.literal('')),
   image: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 })
-
-const MOCK_PROFILE = {
-  name: 'Alex Johnson',
-  email: 'alex@example.com',
-  bio: 'Sharing lessons from 10 years in tech, travel, and personal growth.',
-  image: null,
-  lessonsCount: 12,
-  favoritesCount: 34,
-  role: 'premium',
-}
-
-const MOCK_LESSONS = [
-  {
-    _id: 'p1', title: 'Embrace Failure Early', description: 'Every failure teaches something success never could.',
-    category: 'Career', tone: 'Reflective', isPremium: false, likesCount: 12, savesCount: 5, commentsCount: 3,
-    author: { name: 'Alex Johnson' },
-  },
-  {
-    _id: 'p2', title: 'The Power of Saying No', description: 'Boundaries are bridges to healthier relationships.',
-    category: 'Mindset', tone: 'Motivational', isPremium: true, likesCount: 28, savesCount: 14, commentsCount: 7,
-    author: { name: 'Alex Johnson' },
-  },
-  {
-    _id: 'p3', title: 'Money Habits That Stick', description: 'Small consistent investments build lasting wealth.',
-    category: 'Finance', tone: 'Cautionary', isPremium: false, likesCount: 6, savesCount: 2, commentsCount: 1,
-    author: { name: 'Alex Johnson' },
-  },
-]
 
 function StatCard({ icon: Icon, value, label, color }) {
   return (
@@ -89,16 +61,61 @@ export default function ProfilePage() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['my-profile'],
     queryFn: () => getMyProfile(axiosSecure),
-    placeholderData: MOCK_PROFILE,
     retry: false,
   })
 
-  const { data: lessons, isLoading: lessonsLoading } = useQuery({
-    queryKey: ['my-lessons'],
-    queryFn: () => getMyLessons(axiosSecure),
-    placeholderData: MOCK_LESSONS,
+  const sentinelRef = useRef(null)
+  const nextPageRequestRef = useRef(false)
+
+  const {
+    data: lessonPages,
+    isLoading: lessonsLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['my-public-lessons'],
+    queryFn: ({ pageParam = 1 }) => getMyLessons(axiosSecure, pageParam, 6),
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasNextPage) {
+        return lastPage.pagination.page + 1
+      }
+      return undefined
+    },
+    select: (data) => data,
     retry: false,
   })
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage &&
+            !nextPageRequestRef.current
+          ) {
+            nextPageRequestRef.current = true
+            fetchNextPage().finally(() => {
+              nextPageRequestRef.current = false
+            })
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: (profileData) => updateMyProfile(profileData),
@@ -144,12 +161,13 @@ export default function ProfilePage() {
     }
   }, [profile, user, reset])
 
-  const displayProfile = profile || MOCK_PROFILE
-  const displayLessons = Array.isArray(lessons) ? lessons : MOCK_LESSONS
+  const displayProfile = profile ?? { lessonsCount: 0, favoritesCount: 0 }
+  const displayLessons = lessonPages?.pages?.flatMap((page) => page.lessons ?? []) ?? []
+  const publicLessons = displayLessons.filter((lesson) => lesson.visibility !== 'private')
 
   // Use user session data where available
-  const displayName = profile?.name || user?.name || displayProfile.name
-  const displayEmail = user?.email || profile?.email || displayProfile.email
+  const displayName = profile?.name || user?.name || 'User'
+  const displayEmail = user?.email || profile?.email || ''
   const displayImage = user?.image || profile?.image || null
 
   const initials = displayName
@@ -163,7 +181,7 @@ export default function ProfilePage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             {/* Avatar */}
-            <div className="relative flex-shrink-0">
+            <div className="relative shrink-0">
               {profileLoading ? (
                 <Skeleton className="h-20 w-20 rounded-full" />
               ) : (
@@ -214,7 +232,7 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="shrink-0"
               onClick={() => setEditing(!editing)}
             >
               {editing ? <><X className="h-3.5 w-3.5 mr-1.5" /> Cancel</> : <><Edit2 className="h-3.5 w-3.5 mr-1.5" /> Edit Profile</>}
@@ -294,16 +312,30 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
           </div>
-        ) : displayLessons.filter((l) => l.visibility !== 'private').length === 0 ? (
+        ) : publicLessons.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">No public lessons yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {displayLessons
-              .filter((l) => l.visibility !== 'private')
-              .map((lesson) => (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {publicLessons.map((lesson) => (
                 <LessonCard key={lesson._id} lesson={lesson} isPremiumUser={isPremiumRole} />
               ))}
-          </div>
+            </div>
+
+            <div ref={sentinelRef} className="h-1" />
+
+            <div className="mt-6 flex flex-col items-center gap-3 text-sm text-muted-foreground">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2">
+                  <span>Loading more lessons…</span>
+                  <span className="inline-flex rounded-full border-primary/30 border-t-primary animate-spin h-4 w-4" aria-hidden="true" />
+                </div>
+              )}
+              {!isFetchingNextPage && !hasNextPage && (
+                <span className="text-center text-sm text-muted-foreground">You have reached the end of your public lessons.</span>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

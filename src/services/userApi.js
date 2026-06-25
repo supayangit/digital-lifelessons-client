@@ -18,20 +18,13 @@ export async function updateMyProfile(profileData) {
 }
 
 /**
- * Fetch the current user's saved lessons.
+ * Fetch the current user's created public lessons.
  */
-export async function getMySavedLessons(axiosSecure) {
+export async function getMyLessons(axiosSecure, page = 1, limit = 6) {
   const instance = axiosSecure || axiosPublic
-  const { data } = await instance.get('/api/users/me/saved-lessons')
-  return data
-}
-
-/**
- * Fetch the current user's created lessons.
- */
-export async function getMyLessons(axiosSecure) {
-  const instance = axiosSecure || axiosPublic
-  const { data } = await instance.get('/api/users/me/lessons')
+  const { data } = await instance.get('/api/users/me/public-lessons', {
+    params: { page, limit },
+  })
   return data
 }
 
