@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { useAuth } from '@/src/hooks/useAuth'
 import { useAxiosSecure } from '@/src/hooks/useAxiosSecure'
 import { getComments, addComment, deleteComment } from '@/src/services/commentsApi'
@@ -78,6 +85,8 @@ export function CommentsSection({ lessonId }) {
   const queryClient = useQueryClient()
   const { user, isAuthenticated } = useAuth()
   const [draft, setDraft] = useState('')
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [commentToDelete, setCommentToDelete] = useState(null)
 
   const sentinelRef = useRef(null)
   const nextPageRequestRef = useRef(false)
@@ -213,6 +222,13 @@ export function CommentsSection({ lessonId }) {
     postMutation.mutate(draft.trim())
   }
 
+  const handleConfirmDelete = () => {
+    if (!commentToDelete) return
+    deleteMutation.mutate(commentToDelete)
+    setOpenDeleteDialog(false)
+    setCommentToDelete(null)
+  }
+
   const displayComments = commentList
 
   return (
@@ -288,7 +304,10 @@ export function CommentsSection({ lessonId }) {
                 key={comment._id}
                 comment={comment}
                 currentUserId={user?.id || user?._id}
-                onDelete={(id) => deleteMutation.mutate(id)}
+                onDelete={(id) => {
+                  setCommentToDelete(id)
+                  setOpenDeleteDialog(true)
+                }}
               />
             ))}
           </div>
@@ -309,6 +328,32 @@ export function CommentsSection({ lessonId }) {
           </div>
         </>
       )}
+
+      <Dialog open={openDeleteDialog} onOpenChange={(value) => {
+        setOpenDeleteDialog(value)
+        if (!value) setCommentToDelete(null)
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete comment?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpenDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              className="h-9"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
