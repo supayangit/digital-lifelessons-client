@@ -1,8 +1,8 @@
 'use client'
 
 
-import { useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -75,12 +75,64 @@ export default function PublicLessonsPage() {
     sort,
   }
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['lessons', 'public', queryParams],
-    queryFn: () => getLessons(queryParams),
+  const sentinelRef = useRef(null)
+  const nextPageRequestRef = useRef(false)
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ['lessons', 'public', debouncedSearch, category, tone, sort],
+    queryFn: ({ pageParam = 1 }) => getLessons({ ...queryParams, page: pageParam }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasNextPage) {
+        return lastPage.pagination.page + 1
+      }
+      return undefined
+    },
   })
 
-  const lessons = data?.lessons || data || []
+  const lessons = data?.pages.flatMap((page) => page.lessons) ?? []
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage &&
+            !nextPageRequestRef.current
+          ) {
+            nextPageRequestRef.current = true
+            fetchNextPage().finally(() => {
+              nextPageRequestRef.current = false
+            })
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    )
+
+    observer.observe(sentinel)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const activeFiltersCount = [
     category !== 'All',
@@ -273,6 +325,20 @@ export default function PublicLessonsPage() {
                 </motion.div>
               ))}
             </motion.div>
+
+            <div ref={sentinelRef} className="h-1" />
+
+            <div className="mt-6 flex flex-col items-center gap-3 text-sm text-muted-foreground">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2">
+                  <span>Loading more lessons…</span>
+                  <span className="inline-flex rounded-full border-primary/30 border-t-primary animate-spin h-4 w-4" aria-hidden="true" />
+                </div>
+              )}
+              {!isFetchingNextPage && !hasNextPage && (
+                <span className="text-center text-sm text-muted-foreground">You have reached the end of the feed.</span>
+              )}
+            </div>
           </>
         )}
       </Container>

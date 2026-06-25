@@ -81,11 +81,35 @@ export function CommentsSection({ lessonId }) {
     placeholderData: MOCK_COMMENTS,
     refetchInterval: 15000,       // real-time: refresh every 15 s
     retry: false,
+    onSuccess: (data) => {
+      console.log(
+        `[CommentsSection] Loaded comments for lesson ${lessonId}`,
+        getCommentArray(data).length,
+        'items'
+      )
+    },
+    onError: (err) => {
+      console.error(`[CommentsSection] Failed to load comments for lesson ${lessonId}`, err)
+    },
   })
+
+  const getCommentArray = (value) =>
+    Array.isArray(value)
+      ? value
+      : Array.isArray(value?.comments)
+      ? value.comments
+      : Array.isArray(value?.data?.comments)
+      ? value.data.comments
+      : []
+
+  const commentList = comments === undefined
+    ? MOCK_COMMENTS
+    : getCommentArray(comments)
 
   const postMutation = useMutation({
     mutationFn: (content) => addComment(lessonId, content, axiosSecure),
     onMutate: async (content) => {
+      console.log(`[CommentsSection] Optimistically adding comment for lesson ${lessonId}`, { content })
       await queryClient.cancelQueries({ queryKey: ['comments', lessonId] })
       const prev = queryClient.getQueryData(['comments', lessonId])
       const optimistic = {
@@ -95,17 +119,20 @@ export function CommentsSection({ lessonId }) {
         createdAt: new Date().toISOString(),
       }
       queryClient.setQueryData(['comments', lessonId], (old) => [
-        ...(old || MOCK_COMMENTS),
+        ...getCommentArray(old || MOCK_COMMENTS),
         optimistic,
       ])
       setDraft('')
       return { prev }
     },
     onError: (_err, _content, ctx) => {
-      queryClient.setQueryData(['comments', lessonId], ctx.prev)
+      console.error(`[CommentsSection] Failed to post comment for lesson ${lessonId}`, _err)
+      const previousComments = ctx?.prev ?? queryClient.getQueryData(['comments', lessonId]) ?? MOCK_COMMENTS
+      queryClient.setQueryData(['comments', lessonId], previousComments)
       toast.error('Failed to post comment')
     },
     onSuccess: () => {
+      console.log(`[CommentsSection] Comment posted successfully for lesson ${lessonId}`)
       queryClient.invalidateQueries({ queryKey: ['comments', lessonId] })
       queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] })
     },
@@ -114,18 +141,22 @@ export function CommentsSection({ lessonId }) {
   const deleteMutation = useMutation({
     mutationFn: (commentId) => deleteComment(commentId, axiosSecure),
     onMutate: async (commentId) => {
+      console.log(`[CommentsSection] Optimistically deleting comment ${commentId} for lesson ${lessonId}`)
       await queryClient.cancelQueries({ queryKey: ['comments', lessonId] })
       const prev = queryClient.getQueryData(['comments', lessonId])
       queryClient.setQueryData(['comments', lessonId], (old) =>
-        (old || MOCK_COMMENTS).filter((c) => c._id !== commentId)
+        getCommentArray(old || MOCK_COMMENTS).filter((c) => c._id !== commentId)
       )
       return { prev }
     },
     onError: (_err, _id, ctx) => {
-      queryClient.setQueryData(['comments', lessonId], ctx.prev)
+      console.error(`[CommentsSection] Failed to delete comment for lesson ${lessonId}`, _err)
+      const previousComments = ctx?.prev ?? queryClient.getQueryData(['comments', lessonId]) ?? MOCK_COMMENTS
+      queryClient.setQueryData(['comments', lessonId], previousComments)
       toast.error('Failed to delete comment')
     },
     onSuccess: () => {
+      console.log(`[CommentsSection] Comment deleted successfully for lesson ${lessonId}`)
       toast.success('Comment deleted')
       queryClient.invalidateQueries({ queryKey: ['comments', lessonId] })
     },
@@ -138,11 +169,7 @@ export function CommentsSection({ lessonId }) {
     postMutation.mutate(draft.trim())
   }
 
-  const displayComments = Array.isArray(comments)
-    ? comments
-    : Array.isArray(comments?.comments)
-    ? comments.comments
-    : MOCK_COMMENTS
+  const displayComments = commentList
 
   return (
     <div className="space-y-5">
