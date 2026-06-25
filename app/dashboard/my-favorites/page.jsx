@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { BookmarkX, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BookmarkX, Search, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -23,39 +23,6 @@ const CATEGORIES = ['All', 'Career', 'Relationships', 'Finance', 'Health', 'Mind
 const TONES = ['All', 'Reflective', 'Hopeful', 'Cautionary', 'Motivational', 'Melancholic', 'Humorous']
 const PAGE_SIZE = 6
 
-const MOCK_FAVORITES = [
-  {
-    _id: 'f1', title: 'Embrace Failure Early', description: 'Every failure teaches you something that success never could. I learned this the hard way in my first startup.',
-    category: 'Career', tone: 'Reflective', isPremium: false, likesCount: 12, savesCount: 5, commentsCount: 3,
-    author: { name: 'Alex M.' },
-  },
-  {
-    _id: 'f2', title: 'The Power of Saying No', description: 'Boundaries are not walls — they are bridges to healthier relationships and better productivity.',
-    category: 'Mindset', tone: 'Motivational', isPremium: true, likesCount: 28, savesCount: 14, commentsCount: 7,
-    author: { name: 'Sara K.' },
-  },
-  {
-    _id: 'f3', title: 'How Compound Interest Changed My Life', description: 'Small consistent investments over 10 years built more wealth than I expected.',
-    category: 'Finance', tone: 'Hopeful', isPremium: false, likesCount: 19, savesCount: 9, commentsCount: 4,
-    author: { name: 'James R.' },
-  },
-  {
-    _id: 'f4', title: 'Letting Go of Toxic Friendships', description: 'Some relationships drain your energy silently. Recognising them early is crucial for mental health.',
-    category: 'Relationships', tone: 'Cautionary', isPremium: false, likesCount: 34, savesCount: 21, commentsCount: 11,
-    author: { name: 'Priya S.' },
-  },
-  {
-    _id: 'f5', title: 'Traveling Solo at 50', description: 'Age is just a number. My solo trip to Japan at 52 was the most liberating experience of my adult life.',
-    category: 'Travel', tone: 'Hopeful', isPremium: false, likesCount: 8, savesCount: 3, commentsCount: 2,
-    author: { name: 'Michael T.' },
-  },
-  {
-    _id: 'f6', title: 'The Burnout I Did Not See Coming', description: 'I worked 80-hour weeks for years and thought I was thriving. Then everything collapsed.',
-    category: 'Health', tone: 'Cautionary', isPremium: true, likesCount: 45, savesCount: 31, commentsCount: 16,
-    author: { name: 'Lena B.' },
-  },
-]
-
 export default function MyFavoritesPage() {
   const axiosSecure = useAxiosSecure()
   const queryClient = useQueryClient()
@@ -64,36 +31,95 @@ export default function MyFavoritesPage() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [tone, setTone] = useState('All')
-  const [page, setPage] = useState(1)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['my-favorites', { category, tone, page }],
-    queryFn: () =>
+  const sentinelRef = useRef(null)
+  const nextPageRequestRef = useRef(false)
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['my-favorites', search, category, tone],
+    queryFn: ({ pageParam = 1 }) =>
       getMyFavorites(
         {
+          search: search.trim() || undefined,
           category: category !== 'All' ? category : undefined,
           tone: tone !== 'All' ? tone : undefined,
-          page,
+          page: pageParam,
           limit: PAGE_SIZE,
         },
         axiosSecure
       ),
-    placeholderData: MOCK_FAVORITES,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasNextPage) {
+        return lastPage.pagination.page + 1
+      }
+      return undefined
+    },
     retry: false,
   })
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage &&
+            !nextPageRequestRef.current
+          ) {
+            nextPageRequestRef.current = true
+            fetchNextPage().finally(() => {
+              nextPageRequestRef.current = false
+            })
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    )
+
+    observer.observe(sentinel)
+    return () => {
+      observer.disconnect()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const removeMutation = useMutation({
     mutationFn: (lessonId) => removeFavorite(lessonId, axiosSecure),
     onMutate: async (lessonId) => {
-      await queryClient.cancelQueries({ queryKey: ['my-favorites'] })
-      const prev = queryClient.getQueryData(['my-favorites', { category, tone, page }])
-      queryClient.setQueryData(['my-favorites', { category, tone, page }], (old) =>
-        (old || MOCK_FAVORITES).filter((f) => f._id !== lessonId)
-      )
+      await queryClient.cancelQueries({ queryKey: ['my-favorites', search, category, tone] })
+      const prev = queryClient.getQueryData(['my-favorites', search, category, tone])
+      queryClient.setQueryData(['my-favorites', search, category, tone], (old) => {
+        if (!old) return old
+        if (Array.isArray(old)) {
+          return old.map((page) => page.filter((f) => f._id !== lessonId))
+        }
+        return {
+          ...old,
+          pages: old.pages?.map((page) => ({
+            ...page,
+            lessons: page.lessons?.filter((f) => f._id !== lessonId) ?? [],
+          })) ?? [],
+        }
+      })
       return { prev }
     },
     onError: (_err, _id, ctx) => {
-      queryClient.setQueryData(['my-favorites', { category, tone, page }], ctx.prev)
+      queryClient.setQueryData(['my-favorites', search, category, tone], ctx.prev)
       toast.error('Failed to remove favorite')
     },
     onSuccess: () => {
@@ -103,22 +129,16 @@ export default function MyFavoritesPage() {
     },
   })
 
-  const allLessons = Array.isArray(data) ? data : (data?.lessons || MOCK_FAVORITES)
-
-  // Client-side search filter
-  const filtered = allLessons.filter((l) =>
-    l.title.toLowerCase().includes(search.toLowerCase()) ||
-    l.description?.toLowerCase().includes(search.toLowerCase())
-  )
-
-  const totalPages = data?.totalPages || Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const lessons = data?.pages?.flatMap((page) =>
+    Array.isArray(page) ? page : page.lessons ?? []
+  ) ?? []
+  const totalFavorites = data?.pages?.[0]?.pagination?.total ?? lessons.length
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-serif text-foreground">My Favorites</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} saved lesson{filtered.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{totalFavorites} saved lesson{totalFavorites !== 1 ? 's' : ''}</p>
       </div>
 
       {/* Filters */}
@@ -128,13 +148,13 @@ export default function MyFavoritesPage() {
           <Input
             placeholder="Search favorites..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={category} onValueChange={(v) => { setCategory(v); setPage(1) }}>
+          <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
@@ -142,7 +162,7 @@ export default function MyFavoritesPage() {
               {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={tone} onValueChange={(v) => { setTone(v); setPage(1) }}>
+          <Select value={tone} onValueChange={setTone}>
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
@@ -160,56 +180,45 @@ export default function MyFavoritesPage() {
             <Skeleton key={i} className="h-72 rounded-xl" />
           ))}
         </div>
-      ) : paginated.length === 0 ? (
+      ) : lessons.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
           <BookmarkX className="h-12 w-12 text-muted-foreground/40" />
           <p className="font-medium text-foreground">No favorites found</p>
           <p className="text-sm text-muted-foreground">Try adjusting your filters or explore lessons to save.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {paginated.map((lesson) => (
-            <div key={lesson._id} className="relative group">
-              <LessonCard lesson={lesson} isPremiumUser={isPremiumRole} />
-              {/* Remove favorite overlay button */}
-              <button
-                onClick={() => removeMutation.mutate(lesson._id)}
-                disabled={removeMutation.isPending}
-                className="absolute top-3 right-3 z-10 rounded-full bg-background/90 p-1.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
-                aria-label="Remove from favorites"
-              >
-                <BookmarkX className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {lessons.map((lesson) => (
+              <div key={lesson._id} className="relative group">
+                <LessonCard lesson={lesson} isPremiumUser={isPremiumRole} />
+                {/* Remove favorite overlay button */}
+                <button
+                  onClick={() => removeMutation.mutate(lesson._id)}
+                  disabled={removeMutation.isPending}
+                  className="absolute top-3 right-3 z-10 rounded-full bg-background/90 p-1.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                  aria-label="Remove from favorites"
+                >
+                  <BookmarkX className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+          <div ref={sentinelRef} className="h-1" />
+
+          <div className="mt-6 flex flex-col items-center gap-3 text-sm text-muted-foreground">
+            {isFetchingNextPage && (
+              <div className="flex items-center gap-2">
+                <span>Loading more favorites…</span>
+                <span className="inline-flex rounded-full border-primary/30 border-t-primary animate-spin h-4 w-4" aria-hidden="true" />
+              </div>
+            )}
+            {!isFetchingNextPage && !hasNextPage && (
+              <span className="text-center text-sm text-muted-foreground">You have reached the end of your favorites.</span>
+            )}
+          </div>
+        </>
       )}
     </div>
   )
