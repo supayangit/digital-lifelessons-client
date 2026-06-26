@@ -27,7 +27,7 @@ const STATIC_LINKS = [
 export function CommandPalette({ open, onClose }) {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const { isFree } = useRole()
+  const { isPremium } = useRole()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const debouncedQuery = useDebounce(query, 300)
@@ -51,7 +51,8 @@ export function CommandPalette({ open, onClose }) {
 
   const visibleLinks = STATIC_LINKS.filter((l) => {
     if (l.auth && !isAuthenticated) return false
-    if (l.freeOnly && !isFree) return false
+    // `freeOnly` links should be hidden for premium users
+    if (l.freeOnly && isPremium) return false
     if (query && !l.label.toLowerCase().includes(query.toLowerCase())) return false
     return true
   })

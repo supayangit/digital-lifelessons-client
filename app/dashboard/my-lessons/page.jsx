@@ -2,6 +2,7 @@
 
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -53,6 +54,7 @@ function LessonRowSkeleton() {
 export default function MyLessonsPage() {
   const axiosSecure = useAxiosSecure()
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   const sentinelRef = useRef(null)
   const nextPageRequestRef = useRef(false)
@@ -281,40 +283,34 @@ export default function MyLessonsPage() {
                   {/* Visibility toggle */}
                   <TableCell>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-7 gap-1.5 text-xs px-2 ${lesson.visibility === 'public' ? 'text-primary' : 'text-muted-foreground'}`}
-                          onClick={() => handleVisibilityToggleClick(lesson._id)}
-                          disabled={visibilityMutation.isPending}
-                        >
-                          {lesson.visibility === 'public'
-                            ? <><Eye className="h-3.5 w-3.5" /> Public</>
-                            : <><EyeOff className="h-3.5 w-3.5" /> Private</>
-                          }
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Toggle visibility</TooltipContent>
-                    </Tooltip>
+                    <TooltipTrigger
+                      className={`h-7 gap-1.5 text-xs px-2 inline-flex items-center rounded-lg border border-transparent ${lesson.visibility === 'public' ? 'text-primary bg-muted/50' : 'text-muted-foreground bg-transparent'}`}
+                      onClick={() => handleVisibilityToggleClick(lesson._id)}
+                      disabled={visibilityMutation.isPending}
+                    >
+                      {lesson.visibility === 'public' ? (
+                        <><Eye className="h-3.5 w-3.5" /> Public</>
+                      ) : (
+                        <><EyeOff className="h-3.5 w-3.5" /> Private</>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>Toggle visibility</TooltipContent>
+                  </Tooltip>
                   </TableCell>
 
                   {/* Access Level toggle */}
                   <TableCell>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-7 gap-1.5 text-xs px-2 ${lesson.accessLevel === 'premium' ? 'text-accent-foreground' : 'text-muted-foreground'}`}
-                          onClick={() => accessMutation.mutate(lesson._id)}
-                          disabled={accessMutation.isPending}
-                        >
-                          {lesson.accessLevel === 'premium'
-                            ? <><Lock className="h-3.5 w-3.5" /> Premium</>
-                            : <><Unlock className="h-3.5 w-3.5" /> Free</>
-                          }
-                        </Button>
+                      <TooltipTrigger
+                        className={`h-7 gap-1.5 text-xs px-2 inline-flex items-center rounded-lg border border-transparent ${lesson.accessLevel === 'premium' ? 'text-accent-foreground bg-muted/50' : 'text-muted-foreground bg-transparent'}`}
+                        onClick={() => accessMutation.mutate(lesson._id)}
+                        disabled={accessMutation.isPending}
+                      >
+                        {lesson.accessLevel === 'premium' ? (
+                          <><Lock className="h-3.5 w-3.5" /> Premium</>
+                        ) : (
+                          <><Unlock className="h-3.5 w-3.5" /> Free</>
+                        )}
                       </TooltipTrigger>
                       <TooltipContent>Toggle access level</TooltipContent>
                     </Tooltip>
@@ -339,28 +335,23 @@ export default function MyLessonsPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                            <Link href={`/dashboard/my-lessons/${lesson._id}`}>
-                              <Edit2 className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit</span>
-                            </Link>
-                          </Button>
+                        <TooltipTrigger
+                          className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-muted-foreground hover:bg-muted"
+                          onClick={() => router.push(`/dashboard/my-lessons/${lesson._id}`)}
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span className="sr-only">Edit</span>
                         </TooltipTrigger>
                         <TooltipContent>Edit lesson</TooltipContent>
                       </Tooltip>
                       <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteClick(lesson._id, lesson.title)}
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                        <TooltipTrigger
+                          className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteClick(lesson._id, lesson.title)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="sr-only">Delete</span>
                         </TooltipTrigger>
                         <TooltipContent>Delete lesson</TooltipContent>
                       </Tooltip>

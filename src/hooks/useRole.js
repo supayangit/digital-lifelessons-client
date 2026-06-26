@@ -14,8 +14,8 @@ export function useRole() {
   return {
     role,
     isAdmin: role === 'admin',
-    isFree: role === 'free' || (!isPending && !role),
-    isPremiumRole: role === 'premium',
+    // primary source of truth: user.isPremium (boolean)
+    isPremium: Boolean(user?.isPremium),
     isPending,
   }
 }

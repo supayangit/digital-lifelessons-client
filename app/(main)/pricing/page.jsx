@@ -92,6 +92,11 @@ export default function PricingPage() {
             <Crown className="h-3.5 w-3.5 mr-1.5" />
             Lifetime Access
           </Badge>
+          {isPremium && !rolePending && (
+            <Badge className="mb-4 bg-primary text-primary-foreground border-0 px-3 py-1 text-sm font-medium">
+              Premium Member
+            </Badge>
+          )}
           <h1 className="text-4xl sm:text-5xl font-bold font-serif text-foreground text-balance leading-tight">
             Unlock the Full Wisdom Library
           </h1>

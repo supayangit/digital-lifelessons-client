@@ -24,12 +24,10 @@ import toast from 'react-hot-toast'
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/public-lessons', label: 'Public Lessons' },
-  { href: '/dashboard', label: 'Dashboard', protected: true },
-  { href: '/pricing', label: 'Pricing', freeOnly: true },
 ]
 
 function NavLink({ href, label, pathname, onClick }) {
-  const isActive = pathname === href
+  const isActive = href === '/' ? pathname === href : pathname.startsWith(href)
   return (
     <Link
       href={href}
@@ -48,16 +46,24 @@ export function Navbar() {
   const pathname = usePathname()
   const { data: session, isPending, error } = useSession()
   const user = session?.user ?? null
+  console.log("user data:", user);
   const isAuthenticated = Boolean(user)
-  const { isFree } = useRole()
+  const { isPremium, isAdmin } = useRole()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette()
 
-  const visibleLinks = NAV_LINKS.filter((link) => {
-    if (link.protected && !isAuthenticated) return false
-    if (link.freeOnly && !isFree) return false
-    return true
-  })
+  const authLinks = isAuthenticated
+    ? [
+        { href: '/dashboard/add-lesson', label: 'Add Lesson' },
+        { href: '/dashboard/my-lessons', label: 'My Lessons' },
+        { href: isAdmin ? '/dashboard/admin' : '/dashboard', label: 'Dashboard' },
+      ]
+    : []
+
+  // show pricing link to non-premium users
+  const pricingLink = !isPremium ? [{ href: '/pricing', label: 'Pricing' }] : []
+
+  const visibleLinks = [...NAV_LINKS, ...authLinks, ...pricingLink]
 
   const handleLogout = async () => {
     try {
@@ -152,7 +158,7 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                      <Link href={isAdmin ? '/dashboard/admin' : '/dashboard'} className="flex items-center gap-2 cursor-pointer">
                         <LayoutDashboard className="h-4 w-4" /> Dashboard
                       </Link>
                     </DropdownMenuItem>
