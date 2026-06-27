@@ -6,7 +6,7 @@ import axios from "axios";
  * Connects to the frontend's /api/auth endpoint (localhost:3000)
  */
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:5000",
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
 // ============ AUTHENTICATION FUNCTIONS ============
@@ -79,7 +79,7 @@ export async function updateUserProfile(profileData) {
   try {
     console.log('[auth-client] Update profile - submitting payload:', profileData)
     const response = await axios.put(
-      "http://localhost:5000/api/users/me",
+      `${process.env.NEXT_PUBLIC_API_URL}/api/users/me`,
       profileData,
       {
         withCredentials: true,
