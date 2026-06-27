@@ -32,27 +32,6 @@ const SUBSCRIPTION_LABELS = {
   admin: { label: 'Admin', variant: 'destructive' },
 }
 
-const MOCK_USERS = {
-  users: Array.from({ length: 8 }, (_, i) => ({
-    _id: `user-${i}`,
-    name: ['Aisha Rahman', 'Marco Silva', 'Priya Mehta', 'James Okafor', 'Selin Yıldız', 'Leo Chen', 'Fatima Al-Hassan', 'Daniel Owusu'][i],
-    email: `user${i}@example.com`,
-    role: ['user', 'user', 'user', 'admin', 'user', 'user', 'user', 'user'][i],
-    isPremium: [false, true, false, false, false, true, false, false][i],
-    lessonsCount: [24, 19, 15, 12, 9, 7, 5, 3][i],
-    image: null,
-    createdAt: new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000).toISOString(),
-  })),
-  pagination: {
-    total: 8,
-    page: 1,
-    limit: 10,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-  },
-}
-
 function UserTableSkeleton() {
   return (
     <div className="space-y-3 p-4">
@@ -86,7 +65,6 @@ export default function AdminUsersPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-users', debouncedSearch],
     queryFn: () => getAdminUsers(axiosSecure, { search: debouncedSearch }),
-    placeholderData: MOCK_USERS,
     enabled: isAdmin,
     retry: false,
   })

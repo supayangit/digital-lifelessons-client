@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorState } from '@/components/shared/ErrorState'
 import { useRole } from '@/hooks/useRole'
 import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getAdminOverview } from '@/services/adminApi'
@@ -55,38 +56,6 @@ function AnimatedNumber({ value, duration = 1200 }) {
   }, [value, duration])
 
   return <span>{display.toLocaleString()}</span>
-}
-
-// ── Mock data ─────────────────────────────────────────────────────────────
-const MOCK = {
-  totalUsers: 1284,
-  totalLessons: 347,
-  totalReports: 12,
-  premiumUsers: 193,
-  growthData: [
-    { month: 'Jan', users: 120, lessons: 30 },
-    { month: 'Feb', users: 210, lessons: 52 },
-    { month: 'Mar', users: 310, lessons: 78 },
-    { month: 'Apr', users: 520, lessons: 110 },
-    { month: 'May', users: 890, lessons: 198 },
-    { month: 'Jun', users: 1284, lessons: 347 },
-  ],
-  topContributors: [
-    { name: 'Aisha Rahman', email: 'aisha@example.com', lessonsCount: 24, image: null },
-    { name: 'Marco Silva', email: 'marco@example.com', lessonsCount: 19, image: null },
-    { name: 'Priya Mehta', email: 'priya@example.com', lessonsCount: 15, image: null },
-    { name: 'James Okafor', email: 'james@example.com', lessonsCount: 12, image: null },
-    { name: 'Selin Yıldız', email: 'selin@example.com', lessonsCount: 9, image: null },
-  ],
-  categoryBreakdown: [
-    { category: 'Career', count: 82 },
-    { category: 'Mindset', count: 71 },
-    { category: 'Finance', count: 58 },
-    { category: 'Relationships', count: 47 },
-    { category: 'Health', count: 39 },
-    { category: 'Travel', count: 30 },
-    { category: 'Other', count: 20 },
-  ],
 }
 
 function StatCard({ label, value, icon: Icon, color, loading }) {
@@ -122,17 +91,27 @@ export default function AdminOverviewPage() {
     if (!rolePending && !isAdmin) router.replace('/dashboard')
   }, [isAdmin, rolePending, router])
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-overview'],
     queryFn: () => getAdminOverview(axiosSecure),
-    placeholderData: MOCK,
     enabled: isAdmin,
     retry: false,
   })
 
-  const d = data || MOCK
+  const d = data ?? {
+    totalUsers: 0,
+    totalLessons: 0,
+    totalReports: 0,
+    premiumUsers: 0,
+    growthData: [],
+    topContributors: [],
+    categoryBreakdown: [],
+  }
 
   if (rolePending) return null
+  if (isError) {
+    return <ErrorState message="Failed to load admin overview." onRetry={refetch} />
+  }
 
   return (
     <div className="space-y-8">

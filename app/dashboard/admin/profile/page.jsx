@@ -17,21 +17,6 @@ import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getAdminOverview } from '@/services/adminApi'
 import { getMyProfile } from '@/services/userApi'
 
-const MOCK_PROFILE = {
-  name: 'Admin User',
-  email: 'admin@lifelessons.app',
-  bio: 'Platform administrator. Keeping the community safe and growing.',
-  image: null,
-}
-
-const MOCK_ACTIVITY = [
-  { action: 'Deleted reported lesson "Spam Post"', time: '2 hours ago' },
-  { action: 'Changed user role to Premium', time: '5 hours ago' },
-  { action: 'Featured lesson "Embrace Failure Early"', time: '1 day ago' },
-  { action: 'Reviewed lesson "Money Habits"', time: '2 days ago' },
-  { action: 'Ignored report on "Daily Gratitude"', time: '3 days ago' },
-]
-
 function StatCard({ icon: Icon, value, label, color }) {
   return (
     <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card">
@@ -59,7 +44,6 @@ export default function AdminProfilePage() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['my-profile'],
     queryFn: () => getMyProfile(axiosSecure),
-    placeholderData: MOCK_PROFILE,
     retry: false,
   })
 
@@ -70,7 +54,7 @@ export default function AdminProfilePage() {
     retry: false,
   })
 
-  const p = profile || MOCK_PROFILE
+  const p = profile ?? {}
   const displayName = p.name || user?.name || 'Admin'
   const displayEmail = p.email || user?.email || 'admin@lifelessons.app'
   const initials = displayName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -161,17 +145,9 @@ export default function AdminProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="divide-y divide-border">
-            {MOCK_ACTIVITY.map((item, i) => (
-              <li key={i} className="flex items-start justify-between gap-3 py-3">
-                <div className="flex items-start gap-2.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                  <span className="text-sm text-foreground">{item.action}</span>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">{item.time}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            Recent admin activity is not available in this view.
+          </div>
         </CardContent>
       </Card>
     </div>

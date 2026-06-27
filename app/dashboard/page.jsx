@@ -28,35 +28,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePremium } from '@/hooks/usePremium'
 import { getDashboardOverview } from '@/services/dashboardApi'
 import { StreakTracker } from '@/components/shared/StreakTracker'
-
-/* ── Fallback mock data so the page renders without a backend ── */
-const MOCK_OVERVIEW = {
-  totalLessons: 12,
-  totalFavorites: 34,
-  totalLikes: 87,
-  recentLessons: [
-    { title: 'Embrace Failure Early', category: 'Career', createdAt: '2025-06-10' },
-    { title: 'The Power of Saying No', category: 'Mindset', createdAt: '2025-06-08' },
-    { title: 'Money Habits That Stick', category: 'Finance', createdAt: '2025-06-05' },
-  ],
-  weeklyActivity: [
-    { day: 'Mon', lessons: 1, likes: 4 },
-    { day: 'Tue', lessons: 0, likes: 2 },
-    { day: 'Wed', lessons: 2, likes: 9 },
-    { day: 'Thu', lessons: 1, likes: 6 },
-    { day: 'Fri', lessons: 3, likes: 14 },
-    { day: 'Sat', lessons: 2, likes: 8 },
-    { day: 'Sun', lessons: 1, likes: 3 },
-  ],
-  monthlyActivity: [
-    { month: 'Jan', lessons: 3, favorites: 8 },
-    { month: 'Feb', lessons: 5, favorites: 12 },
-    { month: 'Mar', lessons: 2, favorites: 6 },
-    { month: 'Apr', lessons: 7, favorites: 18 },
-    { month: 'May', lessons: 4, favorites: 10 },
-    { month: 'Jun', lessons: 6, favorites: 15 },
-  ],
-}
+import { ErrorState } from '@/components/shared/ErrorState'
 
 function StatCard({ label, value, icon: Icon, color, loading }) {
   return (
@@ -85,15 +57,24 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const { isPremium } = usePremium()
 
-  const { data: overview, isLoading } = useQuery({
+  const { data: overview, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-overview'],
     queryFn: () => getDashboardOverview(axiosSecure),
     retry: false,
-    // Fall back to mock data on error so the page is always useful
-    placeholderData: MOCK_OVERVIEW,
   })
 
-  const data = overview || MOCK_OVERVIEW
+  const data = overview ?? {
+    totalLessons: 0,
+    totalFavorites: 0,
+    totalLikes: 0,
+    recentLessons: [],
+    weeklyActivity: [],
+    monthlyActivity: [],
+  }
+
+  if (isError) {
+    return <ErrorState message="Failed to load dashboard overview." onRetry={refetch} />
+  }
 
   return (
     <div className="space-y-8">

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import {
   BookOpen, Search, Star, CheckCircle, Trash2, Filter, Loader2, Crown,
@@ -23,33 +24,16 @@ import toast from 'react-hot-toast'
 import Swal from 'sweetalert2'
 import { cn } from '@/lib/utils'
 
-const MOCK_LESSONS = {
-  lessons: Array.from({ length: 8 }, (_, i) => ({
-    _id: `lesson-${i}`,
-    title: ['Embrace Failure', 'The Power of No', 'Money Habits', 'Daily Gratitude', 'Learn Fast', 'Fear Less', 'Be Present', 'Give More'][i],
-    category: ['Career', 'Mindset', 'Finance', 'Health', 'Career', 'Mindset', 'Health', 'Relationships'][i],
-    author: { name: ['Aisha R.', 'Marco S.', 'Priya M.', 'James O.', 'Selin Y.', 'Leo C.', 'Fatima H.', 'Daniel O.'][i] },
-    visibility: i % 3 === 0 ? 'private' : 'public',
-    isFeatured: i % 4 === 0,
-    isReviewed: i % 2 === 0,
-    isFlagged: i === 3,
-    isPremium: i % 3 === 1,
-    createdAt: new Date(Date.now() - i * 3 * 24 * 60 * 60 * 1000).toISOString(),
-  })),
-  pagination: {
-    total: 8,
-    page: 1,
-    limit: 10,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-  },
+// Format creator ID: show first 2 and last 2 chars with *** in middle (7 chars total)
+function formatCreatorId(id) {
+  if (!id || id.length < 7) return id
+  return `${id.slice(0, 2)}***${id.slice(-2)}`
 }
 
 function LessonsTableSkeleton() {
   return (
-    <div className="space-y-3 p-4">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="space-y-3 p-4 animate-pulse">
+      {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="flex items-center gap-4">
           <Skeleton className="h-4 flex-1" />
           <Skeleton className="h-4 w-20" />
@@ -72,22 +56,72 @@ export default function AdminLessonsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [visibilityFilter, setVisibilityFilter] = useState('all')
   const debouncedSearch = useDebounce(search, 400)
+  const sentinelRef = useRef(null)
+  const nextPageRequestRef = useRef(false)
 
   useEffect(() => {
     if (!rolePending && !isAdmin) router.replace('/dashboard')
   }, [isAdmin, rolePending, router])
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['admin-lessons', debouncedSearch, categoryFilter, visibilityFilter],
-    queryFn: () => getAdminLessons(axiosSecure, {
+    queryFn: ({ pageParam = 1 }) => getAdminLessons(axiosSecure, {
       search: debouncedSearch,
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       visibility: visibilityFilter !== 'all' ? visibilityFilter : undefined,
+      page: pageParam,
+      limit: 10,
     }),
-    placeholderData: MOCK_LESSONS,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasNextPage) {
+        return lastPage.pagination.page + 1
+      }
+      return undefined
+    },
     enabled: isAdmin,
     retry: false,
   })
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (
+            entry.isIntersecting &&
+            entry.intersectionRatio >= 0.1 &&
+            hasNextPage &&
+            !isFetchingNextPage &&
+            !nextPageRequestRef.current
+          ) {
+            nextPageRequestRef.current = true
+            fetchNextPage().finally(() => {
+              nextPageRequestRef.current = false
+            })
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '0px 0px 150px 0px',
+        threshold: 0.1,
+      }
+    )
+
+    observer.observe(sentinel)
+    return () => {
+      observer.disconnect()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const { mutate: toggleFeature, isPending: featurePending, variables: featureVars } = useMutation({
     mutationFn: (id) => adminToggleFeature(id, axiosSecure),
@@ -120,8 +154,8 @@ export default function AdminLessonsPage() {
     if (result.isConfirmed) deleteLesson(lesson._id)
   }
 
-  const lessons = data?.lessons || MOCK_LESSONS.lessons || []
-
+  const lessons = data?.pages?.flatMap((page) => page.lessons) ?? []
+  const totalLessons = data?.pages?.[0]?.pagination?.total ?? lessons.length
   const categories = ['all', ...new Set(lessons.map((l) => l.category).filter(Boolean))]
 
   if (rolePending) return null
@@ -133,7 +167,7 @@ export default function AdminLessonsPage() {
           <h1 className="text-2xl font-bold font-serif text-foreground">Manage Lessons</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Review, feature, and moderate all lessons</p>
         </div>
-        <Badge variant="secondary" className="text-sm px-3 py-1">{lessons.length} lessons</Badge>
+        <Badge variant="secondary" className="text-sm px-3 py-1">{totalLessons} lessons</Badge>
       </div>
 
       {/* Filters */}
@@ -189,7 +223,14 @@ export default function AdminLessonsPage() {
                     <TableRow key={lesson._id} className={cn(lesson.isFlagged && 'bg-destructive/5')}>
                       <TableCell className="max-w-[200px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-foreground line-clamp-1">{lesson.title}</span>
+                          <Link
+                            href={`/lesson/${lesson._id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-foreground line-clamp-1 hover:text-primary hover:underline"
+                          >
+                            {lesson.title}
+                          </Link>
                           {lesson.isFlagged && <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Flagged</Badge>}
                           {lesson.isPremium && <Crown className="h-3 w-3 text-accent flex-shrink-0" aria-label="Premium" />}
                         </div>
@@ -197,7 +238,16 @@ export default function AdminLessonsPage() {
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">{lesson.category}</Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{lesson.author?.name}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/user/profile?userId=${lesson.creatorId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                        >
+                          {formatCreatorId(lesson.creatorId)}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={lesson.visibility === 'public' ? 'outline' : 'secondary'} className="text-xs">
                           {lesson.visibility}
@@ -205,7 +255,7 @@ export default function AdminLessonsPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant={lesson.isFeatured ? 'default' : 'outline'}
+                          variant={lesson.featured ? 'default' : 'outline'}
                           size="sm"
                           className="h-7 text-xs px-2.5 gap-1"
                           onClick={() => toggleFeature(lesson._id)}
@@ -214,12 +264,12 @@ export default function AdminLessonsPage() {
                           {featurePending && featureVars === lesson._id
                             ? <Loader2 className="h-3 w-3 animate-spin" />
                             : <Star className="h-3 w-3" />}
-                          {lesson.isFeatured ? 'Featured' : 'Feature'}
+                          {lesson.featured ? 'Featured' : 'Feature'}
                         </Button>
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant={lesson.isReviewed ? 'default' : 'outline'}
+                          variant={lesson.reviewed ? 'default' : 'outline'}
                           size="sm"
                           className="h-7 text-xs px-2.5 gap-1"
                           onClick={() => toggleReview(lesson._id)}
@@ -228,7 +278,7 @@ export default function AdminLessonsPage() {
                           {reviewPending && reviewVars === lesson._id
                             ? <Loader2 className="h-3 w-3 animate-spin" />
                             : <CheckCircle className="h-3 w-3" />}
-                          {lesson.isReviewed ? 'Reviewed' : 'Review'}
+                          {lesson.reviewed ? 'Reviewed' : 'Review'}
                         </Button>
                       </TableCell>
                       <TableCell>
@@ -246,6 +296,19 @@ export default function AdminLessonsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <div ref={sentinelRef} className="h-1" />
+              {(isFetchingNextPage || hasNextPage) && (
+                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  {isFetchingNextPage ? (
+                    <>
+                      <span className="inline-flex h-4 w-4 rounded-full border-t-primary border border-primary/30 animate-spin" />
+                      <span>Loading more lessons…</span>
+                    </>
+                  ) : (
+                    <span>Scroll to load more lessons</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
