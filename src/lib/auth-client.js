@@ -9,7 +9,7 @@ export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
-// ============ AUTHENTICATION FUNCTIONS ============
+// ============ AUTHENTICATION FUNCTIONS =============
 
 /**
  * Sign up a new user with email and password
