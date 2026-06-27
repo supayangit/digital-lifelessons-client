@@ -9,7 +9,7 @@ import {
   BookOpen,
   Flag,
   TrendingUp,
-  Crown,
+  Sparkles,
   Star,
   BarChart2,
   ArrowUpRight,
@@ -41,7 +41,7 @@ function AnimatedNumber({ value, duration = 1200 }) {
   const frameRef = useRef(null)
 
   useEffect(() => {
-    if (!value) return
+    if (value == null) return
     const start = performance.now()
     const animate = (now) => {
       const elapsed = now - start
@@ -101,6 +101,7 @@ export default function AdminOverviewPage() {
   const d = data ?? {
     totalUsers: 0,
     totalLessons: 0,
+    totalPublicLessons: 0,
     totalReports: 0,
     premiumUsers: 0,
     growthData: [],
@@ -126,7 +127,7 @@ export default function AdminOverviewPage() {
         <StatCard label="Total Users" value={d.totalUsers} icon={Users} color="bg-primary/10 text-primary" loading={isLoading} />
         <StatCard label="Total Lessons" value={d.totalLessons} icon={BookOpen} color="bg-secondary text-secondary-foreground" loading={isLoading} />
         <StatCard label="Reports" value={d.totalReports} icon={Flag} color="bg-destructive/10 text-destructive" loading={isLoading} />
-        <StatCard label="Premium Users" value={d.premiumUsers} icon={Crown} color="bg-accent/20 text-accent-foreground" loading={isLoading} />
+        <StatCard label="Premium Users" value={d.premiumUsers} icon={Sparkles} color="bg-accent/20 text-accent-foreground" loading={isLoading} />
       </div>
 
       {/* Growth Chart */}
@@ -174,8 +175,8 @@ export default function AdminOverviewPage() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {(d.topContributors || []).map((user, i) => {
-                const displayName = user?.name || user?.email || 'User'
+              {(d.topContributors || []).map((contributor, i) => {
+                const displayName = contributor?.creatorName || contributor?.creatorEmail || 'Contributor'
                 const initials = displayName
                   .split(' ')
                   .filter(Boolean)
@@ -187,14 +188,14 @@ export default function AdminOverviewPage() {
                   <li key={i} className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground w-4 flex-shrink-0">{i + 1}</span>
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={user?.image} alt={displayName} />
+                      <AvatarImage src={contributor?.creatorPhoto} alt={displayName} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{contributor?.creatorEmail}</p>
                     </div>
-                    <Badge variant="secondary" className="text-xs flex-shrink-0">{user?.lessonsCount ?? 0} lessons</Badge>
+                    <Badge variant="secondary" className="text-xs flex-shrink-0">{contributor?.lessonCount ?? 0} lessons</Badge>
                   </li>
                 )
               })}

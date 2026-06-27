@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import {
-  ShieldCheck, BookOpen, Users, Flag, Activity,
+  ShieldCheck, Crown, BookOpen, Users, Flag, Activity,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,7 @@ function StatCard({ icon: Icon, value, label, color }) {
 export default function AdminProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { isAdmin, isPending: rolePending } = useRole()
+  const { role, isAdmin, isCeo, isPending: rolePending } = useRole()
   const axiosSecure = useAxiosSecure()
 
   useEffect(() => {
@@ -92,10 +92,17 @@ export default function AdminProfilePage() {
                 <>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-xl font-bold font-serif text-foreground">{displayName}</h2>
-                    <Badge variant="destructive" className="flex items-center gap-1 text-xs">
-                      <ShieldCheck className="h-3 w-3" />
-                      Admin
-                    </Badge>
+                    {isCeo ? (
+                      <Badge className="flex items-center gap-1 bg-violet-100 text-violet-700 border border-violet-200 text-xs">
+                        <Crown className="h-3 w-3" />
+                        CEO
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+                        <ShieldCheck className="h-3 w-3" />
+                        Admin
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">{displayEmail}</p>
                   {p.bio && (
@@ -127,8 +134,8 @@ export default function AdminProfilePage() {
               color="bg-destructive/10 text-destructive"
             />
             <StatCard
-              icon={ShieldCheck}
-              value="Admin"
+              icon={isCeo ? Crown : ShieldCheck}
+              value={isCeo ? 'CEO' : 'Admin'}
               label="Role"
               color="bg-accent/20 text-accent-foreground"
             />

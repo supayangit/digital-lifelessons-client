@@ -24,6 +24,11 @@ export async function updateUserSubscription(userId, isPremium, axiosSecure) {
   return data
 }
 
+export async function deleteUser(userId, axiosSecure) {
+  const { data } = await axiosSecure.delete(`/api/admin/users/${userId}`)
+  return data
+}
+
 // ── Lessons ───────────────────────────────────────────────────────────────
 export async function getAdminLessons(axiosSecure, params = {}) {
   const { data } = await axiosSecure.get('/api/admin/lessons', { params })

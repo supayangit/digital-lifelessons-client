@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Users,
   Flag,
+  Sparkles,
   Star,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -65,7 +66,7 @@ function SidebarLink({ href, label, icon: Icon, exact, onClick }) {
 
 export function DashboardSidebar({ onClose }) {
   const { user, logout } = useAuth()
-  const { isAdmin } = useRole()
+  const { isAdmin, isCeo } = useRole()
   const { isPremium } = usePremium()
 
   const initials = user?.name
@@ -121,17 +122,22 @@ export function DashboardSidebar({ onClose }) {
             <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
             <div className="flex items-center gap-1 mt-0.5">
               {isPremium && (
-                <Badge className="h-4 text-[10px] px-1.5 bg-accent text-accent-foreground border-0 gap-0.5">
-                  <Crown className="h-2.5 w-2.5" />
+                <Badge className="h-4 text-[10px] px-1.5 bg-amber-100 text-amber-700 border border-amber-200 gap-0.5">
+                  <Sparkles className="h-2.5 w-2.5" />
                   Premium
                 </Badge>
               )}
-              {isAdmin && (
+              {isCeo ? (
+                <Badge className="h-4 text-[10px] px-1.5 bg-violet-100 text-violet-700 border border-violet-200 gap-0.5">
+                  <Crown className="h-2.5 w-2.5" />
+                  CEO
+                </Badge>
+              ) : isAdmin ? (
                 <Badge variant="destructive" className="h-4 text-[10px] px-1.5">
                   Admin
                 </Badge>
-              )}
-              {!isPremium && !isAdmin && (
+              ) : null}
+              {!isPremium && !isAdmin && !isCeo && (
                 <span className="text-[10px] text-sidebar-foreground/60">Free</span>
               )}
             </div>

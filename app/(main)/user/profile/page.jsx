@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
-import { BookOpen, Bookmark, Crown } from 'lucide-react'
+import { BookOpen, Bookmark, Crown, Sparkles } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -156,8 +156,8 @@ export default function PublicProfilePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-xl font-bold font-serif text-foreground">{displayName}</h1>
                     {profile?.isPremium && (
-                      <Badge className="flex items-center gap-1 bg-accent text-accent-foreground border-0 text-xs">
-                        <Crown className="h-3 w-3" /> Premium
+                      <Badge className="flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 text-xs">
+                        <Sparkles className="h-3 w-3" /> Premium
                       </Badge>
                     )}
                   </div>

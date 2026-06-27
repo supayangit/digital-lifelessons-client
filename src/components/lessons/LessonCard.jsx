@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, Bookmark, Lock, MessageSquare, ArrowRight } from 'lucide-react'
+import { Heart, Bookmark, Lock, MessageSquare, ArrowRight, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -109,7 +109,8 @@ export function LessonCard({ lesson, isPremiumUser = false }) {
         {/* Premium badge */}
         {isPremium && (
           <div className="absolute top-3 right-3">
-            <Badge className="text-xs font-medium bg-accent text-accent-foreground border-0">
+            <Badge className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">
+              <Sparkles className="h-3 w-3 mr-1" />
               Premium
             </Badge>
           </div>

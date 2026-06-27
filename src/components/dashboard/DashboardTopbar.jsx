@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, Home, ChevronRight, Crown } from 'lucide-react'
+import { Menu, Home, ChevronRight, Crown, Sparkles, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
@@ -53,7 +53,7 @@ function Breadcrumbs() {
 }
 
 export function DashboardTopbar({ onMenuClick }) {
-  const { isPremium, isAdmin } = useRole()
+  const { isPremium, isAdmin, isCeo } = useRole()
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/90 backdrop-blur-sm px-4">
@@ -71,16 +71,22 @@ export function DashboardTopbar({ onMenuClick }) {
 
       <div className="ml-auto flex items-center gap-2">
         {isPremium && (
-          <Badge className="hidden sm:flex items-center gap-1 bg-accent text-accent-foreground border-0 text-xs h-6">
-            <Crown className="h-3 w-3" />
+          <Badge className="hidden sm:flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 text-xs h-6">
+            <Sparkles className="h-3 w-3" />
             Premium
           </Badge>
         )}
-        {isAdmin && (
-          <Badge variant="destructive" className="hidden sm:flex text-xs h-6">
+        {isCeo ? (
+          <Badge className="hidden sm:flex items-center gap-1 bg-violet-100 text-violet-700 border border-violet-200 text-xs h-6">
+            <Crown className="h-3 w-3" />
+            CEO
+          </Badge>
+        ) : isAdmin ? (
+          <Badge variant="destructive" className="hidden sm:flex items-center gap-1 text-xs h-6">
+            <ShieldCheck className="h-3 w-3" />
             Admin
           </Badge>
-        )}
+        ) : null}
         {!isPremium && !isAdmin && (
           <Link href="/pricing">
             <Badge variant="outline" className="hidden sm:flex text-xs h-6 cursor-pointer hover:bg-muted transition-colors">

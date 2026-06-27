@@ -8,6 +8,8 @@ import { z } from 'zod'
 import toast from 'react-hot-toast'
 import {
   Crown,
+  Sparkles,
+  ShieldCheck,
   BookOpen,
   Bookmark,
   Camera,
@@ -56,7 +58,7 @@ export default function ProfilePage() {
   const axiosSecure = useAxiosSecure()
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const { isAdmin } = useRole()
+  const { role, isAdmin, isCeo } = useRole()
   const { isPremium } = usePremium()
   const [editing, setEditing] = useState(false)
 
@@ -221,13 +223,19 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-xl font-bold font-serif text-foreground">{displayName}</h1>
                     {isPremium && (
-                      <Badge className="flex items-center gap-1 bg-accent text-accent-foreground border-0 text-xs">
-                        <Crown className="h-3 w-3" /> Premium
+                      <Badge className="flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 text-xs">
+                        <Sparkles className="h-3 w-3" /> Premium
                       </Badge>
                     )}
-                    {isAdmin && (
-                      <Badge variant="destructive" className="text-xs">Admin</Badge>
-                    )}
+                    {isCeo ? (
+                      <Badge className="flex items-center gap-1 bg-violet-100 text-violet-700 border border-violet-200 text-xs">
+                        <Crown className="h-3 w-3" /> CEO
+                      </Badge>
+                    ) : isAdmin ? (
+                      <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+                        <ShieldCheck className="h-3 w-3" /> Admin
+                      </Badge>
+                    ) : null}
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">{displayEmail}</p>
                   {profile?.bio && (

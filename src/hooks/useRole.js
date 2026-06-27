@@ -4,7 +4,7 @@ import { useAuth } from './useAuth'
 
 /**
  * Returns the current user's role.
- * Possible values: 'free' | 'premium' | 'admin' | null
+ * Possible values: 'free' | 'premium' | 'admin' | 'ceo' | null
  */
 export function useRole() {
   const { user, isPending } = useAuth()
@@ -15,7 +15,8 @@ export function useRole() {
 
   return {
     role,
-    isAdmin: role === 'admin',
+    isAdmin: role === 'admin' || role === 'ceo',
+    isCeo: role === 'ceo',
     // Primary source of truth: user.isPremium (from fresh API call, never cached)
     isPremium,
     isPending,

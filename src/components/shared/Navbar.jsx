@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { BookOpen, Menu, X, Plus, BookMarked, LayoutDashboard, LogOut, User, Search } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -46,10 +47,20 @@ export function Navbar() {
   const pathname = usePathname()
   const { data: session, isPending, error } = useSession()
   const user = session?.user ?? null
-  console.log("user data:", user);
   const isAuthenticated = Boolean(user)
-  const { isPremium, isAdmin } = useRole()
+  const { role, isPremium, isAdmin } = useRole()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const showPricingLink = !isPremium && !isAdmin
+  const pricingLink = showPricingLink ? [{ href: '/pricing', label: 'Pricing' }] : []
+
+  const roleBadgeLabel = role === 'ceo' ? 'CEO' : role === 'admin' ? 'Admin' : isPremium ? 'Premium' : null
+  const roleBadgeVariant = role === 'ceo' ? 'secondary' : role === 'admin' ? 'destructive' : 'secondary'
+  const roleBadgeClassName = role === 'ceo'
+    ? 'bg-violet-500/10 text-violet-500 border-violet-500/20'
+    : role === 'admin'
+    ? 'bg-destructive/10 text-destructive border-destructive/20'
+    : 'bg-amber-100 text-amber-700 border-amber-200'
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette()
 
   const authLinks = isAuthenticated
@@ -59,9 +70,6 @@ export function Navbar() {
         { href: isAdmin ? '/dashboard/admin' : '/dashboard', label: 'Dashboard' },
       ]
     : []
-
-  // show pricing link to non-premium users
-  const pricingLink = !isPremium ? [{ href: '/pricing', label: 'Pricing' }] : []
 
   const visibleLinks = [...NAV_LINKS, ...authLinks, ...pricingLink]
 
@@ -97,6 +105,11 @@ export function Navbar() {
           {visibleLinks.map((link) => (
             <NavLink key={link.href} {...link} pathname={pathname} />
           ))}
+          {roleBadgeLabel && !showPricingLink ? (
+            <Badge variant={roleBadgeVariant} className={`text-sm ${roleBadgeClassName}`}>
+              {roleBadgeLabel}
+            </Badge>
+          ) : null}
         </nav>
 
         {/* Right side */}
@@ -234,6 +247,13 @@ export function Navbar() {
                       {link.label}
                     </Link>
                   ))}
+                  {roleBadgeLabel && !showPricingLink ? (
+                    <div className="px-3 py-2 rounded-lg">
+                      <Badge variant={roleBadgeVariant} className={`text-sm ${roleBadgeClassName}`}>
+                        {roleBadgeLabel}
+                      </Badge>
+                    </div>
+                  ) : null}
                 </nav>
 
                 <div className="mt-auto border-t border-border pt-4">

@@ -7,6 +7,7 @@ import {
   Heart,
   TrendingUp,
   Crown,
+  Sparkles,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -91,8 +92,8 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <StreakTracker />
           {isPremium && (
-            <Badge className="flex items-center gap-1.5 bg-accent text-accent-foreground border-0 px-3 py-1 text-sm">
-              <Crown className="h-3.5 w-3.5" />
+            <Badge className="flex items-center gap-1.5 bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 text-sm">
+              <Sparkles className="h-3.5 w-3.5" />
               Premium Member
             </Badge>
           )}

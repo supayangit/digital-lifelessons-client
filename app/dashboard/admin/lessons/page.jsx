@@ -232,7 +232,7 @@ export default function AdminLessonsPage() {
                             {lesson.title}
                           </Link>
                           {lesson.isFlagged && <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Flagged</Badge>}
-                          {lesson.isPremium && <Crown className="h-3 w-3 text-accent flex-shrink-0" aria-label="Premium" />}
+                          {lesson.isPremium && <Sparkles className="h-3 w-3 text-accent flex-shrink-0" aria-label="Premium" />}
                         </div>
                       </TableCell>
                       <TableCell>
