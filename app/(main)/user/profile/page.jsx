@@ -1,6 +1,11 @@
 import { Suspense } from 'react'
 import ProfileClient from './ProfileClient'
 
+export const metadata = {
+  title: 'Contributor Profile | Digital Life Lessons',
+  description: 'Discover contributor profiles and public lessons shared by the community.',
+}
+
 export default function PublicProfilePage() {
   return (
     <Suspense

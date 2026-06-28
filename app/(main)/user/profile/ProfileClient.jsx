@@ -97,6 +97,15 @@ export default function PublicProfileClient() {
   const displayName = profile?.name || 'Contributor'
   const displayImage = profile?.image || null
   const displayBio = profile?.bio || null
+
+  useEffect(() => {
+    if (displayName) {
+      document.title = `${displayName} | Contributor Profile | Digital Life Lessons`
+    } else {
+      document.title = 'Contributor Profile | Digital Life Lessons'
+    }
+  }, [displayName])
+
   const initials = displayName
     ? displayName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U'

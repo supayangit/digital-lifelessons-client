@@ -6,7 +6,8 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, Suspense } from 'react'
-import { Eye, EyeOff, BookOpen, Globe } from 'lucide-react'
+import { Eye, EyeOff, BookOpen } from 'lucide-react'
+import { FcGoogle } from 'react-icons/fc'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -64,6 +65,22 @@ function LoginForm() {
     }
   }
 
+  const handleFormKeyDown = (event) => {
+    if (event.key !== 'Enter') return
+
+    const target = event.target
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLTextAreaElement)) return
+    if (event.metaKey || event.ctrlKey || event.altKey) return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const form = event.currentTarget
+    if (form instanceof HTMLFormElement && !loading) {
+      form.requestSubmit()
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
@@ -86,7 +103,7 @@ function LoginForm() {
             disabled={googleLoading}
             type="button"
           >
-            <Globe className="h-4 w-4" />
+            <FcGoogle className="h-4 w-4" />
             {googleLoading ? 'Redirecting...' : 'Continue with Google'}
           </Button>
 
@@ -97,7 +114,7 @@ function LoginForm() {
           </div>
 
           {/* Email form */}
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4" onKeyDown={handleFormKeyDown}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
                 Email address

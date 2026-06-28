@@ -6,7 +6,8 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Eye, EyeOff, BookOpen, Globe, CheckCircle2, XCircle } from 'lucide-react'
+import { Eye, EyeOff, BookOpen, CheckCircle2, XCircle } from 'lucide-react'
+import { FcGoogle } from 'react-icons/fc'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -85,6 +86,22 @@ export default function RegisterPage() {
   const hasLowercase = /[a-z]/.test(watchedPassword)
   const hasMinLength = watchedPassword.length >= 6
 
+  const handleFormKeyDown = (event) => {
+    if (event.key !== 'Enter') return
+
+    const target = event.target
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLTextAreaElement)) return
+    if (event.metaKey || event.ctrlKey || event.altKey) return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const form = event.currentTarget
+    if (form instanceof HTMLFormElement && !loading) {
+      form.requestSubmit()
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
@@ -107,7 +124,7 @@ export default function RegisterPage() {
             disabled={googleLoading}
             type="button"
           >
-            <Globe className="h-4 w-4" />
+            <FcGoogle className="h-4 w-4" />
             {googleLoading ? 'Redirecting...' : 'Continue with Google'}
           </Button>
 
@@ -117,7 +134,7 @@ export default function RegisterPage() {
             <Separator className="flex-1" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4" onKeyDown={handleFormKeyDown}>
             {/* Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">

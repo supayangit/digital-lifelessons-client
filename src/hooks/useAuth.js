@@ -1,7 +1,8 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { login, signup, logout, signInWithGoogle } from '@/lib/auth-client'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { login, signup, logout, signInWithGoogle, useSession } from '@/lib/auth-client'
 import { getMyProfile } from '@/services/userApi'
 
 /**
@@ -10,6 +11,9 @@ import { getMyProfile } from '@/services/userApi'
  * Never uses cached session data.
  */
 export function useAuth() {
+  const queryClient = useQueryClient()
+  const { data: session, isPending: sessionPending } = useSession()
+
   const { data: user, isPending, error, refetch } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -27,11 +31,18 @@ export function useAuth() {
     retry: false,
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Never cache
+    refetchOnWindowFocus: false,
   })
+
+  useEffect(() => {
+    if (session !== undefined) {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'], refetchType: 'active' })
+    }
+  }, [queryClient, session])
 
   return {
     user: user || null,
-    isPending,
+    isPending: isPending || sessionPending,
     error,
     isAuthenticated: Boolean(user),
     refetch,

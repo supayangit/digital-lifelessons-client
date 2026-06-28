@@ -17,8 +17,8 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { ThemeToggle } from './ThemeToggle'
 import { useCommandPalette } from './CommandPalette'
-import { useSession, logout } from '@/lib/auth-client'
-import { useRole } from '@/hooks/useRole'
+import { logout } from '@/lib/auth-client'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -45,10 +45,11 @@ function NavLink({ href, label, pathname, onClick }) {
 
 export function Navbar() {
   const pathname = usePathname()
-  const { data: session, isPending, error } = useSession()
-  const user = session?.user ?? null
+  const { user, isPending, error } = useAuth()
   const isAuthenticated = Boolean(user)
-  const { role, isPremium, isAdmin } = useRole()
+  const role = user?.role ?? null
+  const isPremium = Boolean(user?.isPremium)
+  const isAdmin = role === 'admin' || role === 'ceo'
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const showPricingLink = !isPremium && !isAdmin
