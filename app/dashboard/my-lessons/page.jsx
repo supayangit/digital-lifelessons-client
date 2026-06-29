@@ -39,6 +39,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { useAxiosSecure } from '@/hooks/useAxiosSecure'
+import { usePremium } from '@/hooks/usePremium'
 import { getMyLessons, deleteLesson, toggleVisibility, toggleAccessLevel } from '@/services/lessonApi'
 
 function LessonRowSkeleton() {
@@ -53,6 +54,7 @@ function LessonRowSkeleton() {
 
 export default function MyLessonsPage() {
   const axiosSecure = useAxiosSecure()
+  const { isPremium } = usePremium()
   const queryClient = useQueryClient()
   const router = useRouter()
 
@@ -302,9 +304,9 @@ export default function MyLessonsPage() {
                   <TableCell>
                     <Tooltip>
                       <TooltipTrigger
-                        className={`h-7 gap-1.5 text-xs px-2 inline-flex items-center rounded-lg border border-transparent ${lesson.accessLevel === 'premium' ? 'text-accent-foreground bg-muted/50' : 'text-muted-foreground bg-transparent'}`}
-                        onClick={() => accessMutation.mutate(lesson._id)}
-                        disabled={accessMutation.isPending}
+                        className={`h-7 gap-1.5 text-xs px-2 inline-flex items-center rounded-lg border border-transparent ${lesson.accessLevel === 'premium' ? 'text-accent-foreground bg-muted/50' : 'text-muted-foreground bg-transparent'} ${!isPremium ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        onClick={() => { if (!isPremium) return; accessMutation.mutate(lesson._id) }}
+                        disabled={!isPremium || accessMutation.isPending}
                       >
                         {lesson.accessLevel === 'premium' ? (
                           <><Lock className="h-3.5 w-3.5" /> Premium</>
@@ -312,7 +314,7 @@ export default function MyLessonsPage() {
                           <><Unlock className="h-3.5 w-3.5" /> Free</>
                         )}
                       </TooltipTrigger>
-                      <TooltipContent>Toggle access level</TooltipContent>
+                      <TooltipContent>{!isPremium ? 'Upgrade to Premium to change access level' : 'Toggle access level'}</TooltipContent>
                     </Tooltip>
                   </TableCell>
 
@@ -334,16 +336,27 @@ export default function MyLessonsPage() {
                   {/* Actions */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger
-                          className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-muted-foreground hover:bg-muted"
-                          onClick={() => router.push(`/dashboard/my-lessons/${lesson._id}`)}
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                          <span className="sr-only">Edit</span>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit lesson</TooltipContent>
-                      </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-muted-foreground hover:bg-muted"
+                            onClick={() => router.push(`/lesson/${lesson._id}`)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span className="sr-only">Details</span>
+                          </TooltipTrigger>
+                          <TooltipContent>Lesson details</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-muted-foreground hover:bg-muted"
+                            onClick={() => router.push(`/dashboard/my-lessons/${lesson._id}`)}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                            <span className="sr-only">Edit</span>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit lesson</TooltipContent>
+                        </Tooltip>
                       <Tooltip>
                         <TooltipTrigger
                           className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-transparent text-destructive hover:bg-destructive/10"
