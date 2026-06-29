@@ -1,18 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { login, signup, logout, signInWithGoogle, useSession } from '@/lib/auth-client'
+import { login, signup, logout, signInWithGoogle } from '@/lib/auth-client'
 import { getMyProfile } from '@/services/userApi'
 
 /**
  * Primary auth hook.
  * Fetches fresh user data from /api/users/me on every request.
- * Never uses cached session data.
+ * Does not depend on better-auth's useSession() to avoid context issues.
  */
 export function useAuth() {
   const queryClient = useQueryClient()
-  const { data: session, isPending: sessionPending } = useSession()
 
   const { data: user, isPending, error, refetch } = useQuery({
     queryKey: ['currentUser'],
@@ -34,15 +32,9 @@ export function useAuth() {
     refetchOnWindowFocus: false,
   })
 
-  useEffect(() => {
-    if (session !== undefined) {
-      queryClient.invalidateQueries({ queryKey: ['currentUser'], refetchType: 'active' })
-    }
-  }, [queryClient, session])
-
   return {
     user: user || null,
-    isPending: isPending || sessionPending,
+    isPending,
     error,
     isAuthenticated: Boolean(user),
     refetch,
