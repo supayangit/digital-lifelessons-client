@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 
 /**
  * Protected routes that require authentication.
+ *
+ * WARNING: dashboard routes are intentionally open now, so do not include
+ * /dashboard or any of its child paths here.
  */
-const PROTECTED_ROUTES = ['/add-lesson', '/my-lessons', '/dashboard']
+const PROTECTED_ROUTES = []
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl
