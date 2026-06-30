@@ -32,6 +32,24 @@ export function useAuth() {
 
   const isAuthLoading = isLoading || isPending || isFetching
 
+  const loginWithRefresh = async (credentials) => {
+    const response = await login(credentials)
+    await refetch()
+    return response
+  }
+
+  const signInWithGoogleWithRefresh = async () => {
+    const response = await signInWithGoogle()
+    await refetch()
+    return response
+  }
+
+  const logoutWithRefresh = async () => {
+    const response = await logout()
+    await refetch()
+    return response
+  }
+
   return {
     user: user || null,
     isLoading: isAuthLoading,
@@ -39,9 +57,9 @@ export function useAuth() {
     error,
     isAuthenticated: Boolean(user),
     refetch,
-    login,
+    login: loginWithRefresh,
     signup,
-    signInWithGoogle,
-    logout,
+    signInWithGoogle: signInWithGoogleWithRefresh,
+    logout: logoutWithRefresh,
   }
 }
