@@ -31,7 +31,6 @@ import { usePremium } from '@/hooks/usePremium'
 import { getDashboardOverview } from '@/services/dashboardApi'
 import { StreakTracker } from '@/components/shared/StreakTracker'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { ProtectedRoute } from '@/components/shared/ProtectedRoute'
 
 function StatCard({ label, value, icon: Icon, color, loading }) {
   return (
@@ -232,9 +231,5 @@ function DashboardContent() {
 }
 
 export default function DashboardClient() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  )
+  return <DashboardContent />
 }

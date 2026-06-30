@@ -1,20 +1,17 @@
 'use client'
 
-import { useSession } from '@/lib/auth-client'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from './LoadingSpinner'
 import { ErrorState } from './ErrorState'
 
 /**
  * ProtectedRoute — Wrapper component that guards content based on auth state.
- * Shows spinner while loading, error if not authenticated, or content if authenticated.
+ * Uses the same /api/users/me check that the navbar uses.
  */
 export function ProtectedRoute({ children, fallback = null }) {
-  const { data: session, isPending } = useSession()
-  const { isLoading } = useAuth()
-  const isAuthLoading = isPending || isLoading
+  const { user, isLoading, isAuthenticated } = useAuth()
 
-  if (isAuthLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <LoadingSpinner />
@@ -22,7 +19,7 @@ export function ProtectedRoute({ children, fallback = null }) {
     )
   }
 
-  if (!session) {
+  if (!isAuthenticated || !user) {
     return fallback || (
       <ErrorState
         title="Access Denied"
