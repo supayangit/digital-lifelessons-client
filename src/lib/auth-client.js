@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import axios from "axios";
+import axiosPublic from '@/services/axios';
 
 const AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_URL ||
@@ -93,16 +93,7 @@ export async function logout() {
 export async function updateUserProfile(profileData) {
   try {
     console.log('[auth-client] Update profile - submitting payload:', profileData)
-    const response = await axios.put(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/users/me`,
-      profileData,
-      {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await axiosPublic.put('/api/users/me', profileData)
     console.log('[auth-client] Update profile - full response:', response.data)
     console.log('[auth-client] Update profile - returning user object:', response.data.user)
     // Backend returns { success, message, user } - extract the user object
