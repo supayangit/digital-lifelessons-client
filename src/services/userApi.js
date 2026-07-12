@@ -1,5 +1,5 @@
 import axiosPublic from './axios'
-import { authClient, updateUserProfile } from '@/lib/auth-client'
+import { authClient, getStoredAuthToken, updateUserProfile } from '@/lib/auth-client'
 
 /**
  * Fetch the current user's profile.
@@ -12,12 +12,16 @@ export async function getMyProfile(axiosSecure) {
 
   if (!axiosSecure) {
     const session = await authClient.getSession()
-    const token =
+    let token =
       session?.data?.session?.token ||
       session?.data?.token ||
       session?.token ||
       session?.data?.session?.accessToken ||
       session?.data?.session?.access_token
+
+    if (!token) {
+      token = getStoredAuthToken()
+    }
 
     if (token) {
       config.headers = {

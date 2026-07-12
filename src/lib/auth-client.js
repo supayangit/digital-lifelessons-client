@@ -8,6 +8,47 @@ const AUTH_URL =
     : undefined) ||
   '/api/auth'
 
+const AUTH_TOKEN_STORAGE_KEY = 'better-auth.session_token'
+const isBrowser = typeof window !== 'undefined'
+
+const extractTokenFromSession = (session) => {
+  return (
+    session?.token ||
+    session?.data?.session?.token ||
+    session?.data?.token ||
+    session?.data?.session?.accessToken ||
+    session?.data?.session?.access_token ||
+    null
+  )
+}
+
+const persistAuthToken = (token) => {
+  if (!isBrowser || !token) return
+  try {
+    window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token)
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
+export const getStoredAuthToken = () => {
+  if (!isBrowser) return null
+  try {
+    return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+const clearStoredAuthToken = () => {
+  if (!isBrowser) return
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
 /**
  * Unified Auth Client
  * Connects to the backend auth endpoint for the current API host.
@@ -48,8 +89,16 @@ export async function login({ email, password }) {
       password,
     });
 
+    const token = extractTokenFromSession(response)
+    if (token) persistAuthToken(token)
+
     // Ensure the auth session is resolved before the app fetches protected data.
-    await authClient.getSession();
+    try {
+      await authClient.getSession()
+    } catch (error) {
+      console.warn('Post-login session fetch failed:', error)
+    }
+
     return response;
   } catch (error) {
     console.error("Login error:", error);
@@ -67,7 +116,15 @@ export async function signInWithGoogle() {
       callbackURL: `${typeof window !== "undefined" ? window.location.origin : ""}/`,
     });
 
-    await authClient.getSession();
+    const token = extractTokenFromSession(response)
+    if (token) persistAuthToken(token)
+
+    try {
+      await authClient.getSession()
+    } catch (error) {
+      console.warn('Post-google-login session fetch failed:', error)
+    }
+
     return response;
   } catch (error) {
     console.error("Google signin error:", error);
@@ -80,8 +137,11 @@ export async function signInWithGoogle() {
  */
 export async function logout() {
   try {
-    return await authClient.signOut();
+    const response = await authClient.signOut();
+    clearStoredAuthToken()
+    return response;
   } catch (error) {
+    clearStoredAuthToken()
     console.error("Logout error:", error);
     throw error;
   }
@@ -110,6 +170,8 @@ export async function updateUserProfile(profileData) {
 export async function getSession() {
   try {
     const session = await authClient.getSession();
+    const token = extractTokenFromSession(session)
+    if (token) persistAuthToken(token)
     return session;
   } catch (error) {
     console.error("Get session error:", error);

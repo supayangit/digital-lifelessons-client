@@ -4,7 +4,7 @@
 import { useMemo } from 'react'
 import axios from 'axios'
 import { useAuth } from './useAuth'
-import { authClient } from '@/lib/auth-client'
+import { getStoredAuthToken } from '@/lib/auth-client'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -23,11 +23,15 @@ export function useAxiosSecure() {
       withCredentials: true,
     })
 
-    // Request interceptor — attach bearer token if available
+    // Request interceptor — attach bearer token if available.
     instance.interceptors.request.use(async (config) => {
-      // Note: withCredentials: true already sends cookies automatically.
-      // Token attachment is skipped to avoid excessive session polling.
-      // Backend receives either httpOnly cookie or falls back to Authorization header if needed.
+      const token = getStoredAuthToken()
+      if (token) {
+        config.headers = config.headers || {}
+        if (!config.headers.Authorization) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      }
       return config
     })
 
