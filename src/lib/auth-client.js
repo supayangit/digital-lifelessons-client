@@ -89,15 +89,19 @@ export async function login({ email, password }) {
       password,
     });
 
-    const token = extractTokenFromSession(response)
-    if (token) persistAuthToken(token)
+    // Some environments return the token directly from the sign-in response,
+    // but others require fetching the session afterwards. Try both.
+    let token = extractTokenFromSession(response)
 
-    // Ensure the auth session is resolved before the app fetches protected data.
     try {
-      await authClient.getSession()
+      const session = await authClient.getSession()
+      const sessionToken = extractTokenFromSession(session)
+      if (sessionToken) token = sessionToken
     } catch (error) {
       console.warn('Post-login session fetch failed:', error)
     }
+
+    if (token) persistAuthToken(token)
 
     return response;
   } catch (error) {
@@ -116,14 +120,18 @@ export async function signInWithGoogle() {
       callbackURL: `${typeof window !== "undefined" ? window.location.origin : ""}/`,
     });
 
-    const token = extractTokenFromSession(response)
-    if (token) persistAuthToken(token)
-
+    // Persist token if available from the immediate response or from
+    // the post-redirect session fetch.
+    let token = extractTokenFromSession(response)
     try {
-      await authClient.getSession()
+      const session = await authClient.getSession()
+      const sessionToken = extractTokenFromSession(session)
+      if (sessionToken) token = sessionToken
     } catch (error) {
       console.warn('Post-google-login session fetch failed:', error)
     }
+
+    if (token) persistAuthToken(token)
 
     return response;
   } catch (error) {
