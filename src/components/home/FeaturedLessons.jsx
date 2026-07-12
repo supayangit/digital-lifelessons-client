@@ -13,6 +13,7 @@ import { LessonCard } from '@/components/lessons/LessonCard'
 import { getFeaturedLessons } from '@/services/lessonApi'
 import { usePremium } from '@/hooks/usePremium'
 
+
 const containerVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
