@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { BookmarkX, Search, Filter } from 'lucide-react'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -23,6 +24,7 @@ const TONES = ['All', 'Reflective', 'Hopeful', 'Cautionary', 'Motivational', 'Me
 const PAGE_SIZE = 6
 
 export default function MyFavoritesPage() {
+  const axiosSecure = useAxiosSecure()
   const queryClient = useQueryClient()
   const { isPremium } = usePremium()
 
@@ -97,7 +99,7 @@ export default function MyFavoritesPage() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   const removeMutation = useMutation({
-    mutationFn: (lessonId) => removeFavorite(lessonId),
+    mutationFn: (lessonId) => removeFavorite(lessonId, axiosSecure),
     onMutate: async (lessonId) => {
       await queryClient.cancelQueries({ queryKey: ['my-favorites', search, category, tone] })
       const prev = queryClient.getQueryData(['my-favorites', search, category, tone])

@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { useRole } from '@/hooks/useRole'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getReportedLessons, deleteReportedLesson, ignoreReport } from '@/services/adminApi'
 import toast from 'react-hot-toast'
 import Swal from 'sweetalert2'
@@ -54,24 +55,25 @@ function formatUserId(id) {
 export default function AdminReportsPage() {
   const router = useRouter()
   const { isAdmin, isPending: rolePending } = useRole()
+  const axiosSecure = useAxiosSecure()
   const queryClient = useQueryClient()
   const [expandedReportId, setExpandedReportId] = useState(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-reports'],
-    queryFn: () => getReportedLessons(),
+    queryFn: () => getReportedLessons(axiosSecure),
     enabled: isAdmin,
     retry: false,
   })
 
   const { mutate: deleteLess, isPending: delPending, variables: delVars } = useMutation({
-    mutationFn: (lessonId) => deleteReportedLesson(lessonId),
+    mutationFn: (lessonId) => deleteReportedLesson(lessonId, axiosSecure),
     onSuccess: () => { toast.success('Lesson deleted'); queryClient.invalidateQueries({ queryKey: ['admin-reports'] }) },
     onError: () => toast.error('Failed to delete lesson'),
   })
 
   const { mutate: ignore, isPending: ignorePending, variables: ignoreVars } = useMutation({
-    mutationFn: (lessonId) => ignoreReport(lessonId),
+    mutationFn: (lessonId) => ignoreReport(lessonId, axiosSecure),
     onSuccess: () => { toast.success('Report ignored'); queryClient.invalidateQueries({ queryKey: ['admin-reports'] }) },
     onError: () => toast.error('Failed to ignore report'),
   })

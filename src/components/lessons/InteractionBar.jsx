@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { addLike, removeLike } from '@/services/likesApi'
 import { submitReport, REPORT_REASONS } from '@/services/reportsApi'
 import { addFavorite, removeFavorite } from '@/services/favoritesApi'
@@ -33,6 +34,7 @@ import { addFavorite, removeFavorite } from '@/services/favoritesApi'
  *   initialSaves?: number,
  *   isLiked?: boolean,
  *   isFavorited?: boolean,
+ *   axiosSecure?: object,
  * }} props
  */
 export function InteractionBar({
@@ -42,9 +44,12 @@ export function InteractionBar({
   initialSaves = 0,
   isLiked = false,
   isFavorited = false,
+  axiosSecure: propAxiosSecure,
 }) {
   const queryClient = useQueryClient()
   const { isAuthenticated } = useAuth()
+  const autoAxiosSecure = useAxiosSecure()
+  const axiosSecure = propAxiosSecure || autoAxiosSecure
 
   const [liked, setLiked] = useState(isLiked)
   const [likesCount, setLikesCount] = useState(initialLikes)
@@ -69,7 +74,7 @@ export function InteractionBar({
   /* ── Like (optimistic) ── */
   const likeMutation = useMutation({
     mutationFn: ({ nextLiked }) =>
-      nextLiked ? addLike(lessonId) : removeLike(lessonId),
+      nextLiked ? addLike(lessonId, axiosSecure) : removeLike(lessonId, axiosSecure),
     onMutate: ({ nextLiked }) => {
       console.log('Like toggle requested:', {
         lessonId,
@@ -110,8 +115,8 @@ export function InteractionBar({
   const favMutation = useMutation({
     mutationFn: ({ nextFavorited }) =>
       nextFavorited
-        ? addFavorite(lessonId)
-        : removeFavorite(lessonId),
+        ? addFavorite(lessonId, axiosSecure)
+        : removeFavorite(lessonId, axiosSecure),
     onMutate: ({ nextFavorited }) => {
       console.log('Favorite toggle requested:', {
         lessonId,
@@ -157,7 +162,7 @@ export function InteractionBar({
 
   /* ── Report ── */
   const reportMutation = useMutation({
-    mutationFn: (reason) => submitReport(lessonId, reason),
+    mutationFn: (reason) => submitReport(lessonId, reason, axiosSecure),
     onSuccess: () => toast.success('Report submitted. Thank you for keeping our community safe.'),
     onError: () => toast.error('Failed to submit report'),
   })

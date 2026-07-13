@@ -30,6 +30,7 @@ import { LessonCard } from '@/components/lessons/LessonCard'
 import { useAuth } from '@/hooks/useAuth'
 import { usePremium } from '@/hooks/usePremium'
 import { useRole } from '@/hooks/useRole'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getMyProfile, getMyLessons, updateMyProfile } from '@/services/userApi'
 
 const profileSchema = z.object({
@@ -57,11 +58,12 @@ export default function ProfilePageClient() {
   const { user } = useAuth()
   const { role, isAdmin, isCeo } = useRole()
   const { isPremium } = usePremium()
+  const axiosSecure = useAxiosSecure()
   const [editing, setEditing] = useState(false)
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['my-profile'],
-    queryFn: () => getMyProfile(),
+    queryFn: () => getMyProfile(axiosSecure),
     retry: false,
   })
 
@@ -76,7 +78,7 @@ export default function ProfilePageClient() {
     hasNextPage,
   } = useInfiniteQuery({
     queryKey: ['my-public-lessons'],
-    queryFn: ({ pageParam = 1 }) => getMyLessons(pageParam, 6),
+    queryFn: ({ pageParam = 1 }) => getMyLessons(axiosSecure, pageParam, 6),
     getNextPageParam: (lastPage) => {
       if (lastPage?.pagination?.hasNextPage) {
         return lastPage.pagination.page + 1

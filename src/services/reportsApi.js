@@ -1,7 +1,6 @@
 /**
- * Reports API — endpoint.
+ * Reports API — authenticated endpoint.
  */
-import axiosPublic from './axios'
 
 export const REPORT_REASONS = [
   'Spam',
@@ -11,7 +10,16 @@ export const REPORT_REASONS = [
   'Other',
 ]
 
-export async function submitReport(lessonId, reason) {
-  const { data } = await axiosPublic.post('/api/reports', { lessonId, reason })
+import axiosPublic from './axios'
+
+export async function submitReport(lessonId, reason, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.post('/api/reports', { lessonId, reason })
+  return data
+}
+
+export async function toggleLike(lessonId, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.patch(`/api/lessons/${lessonId}/like`)
   return data
 }

@@ -1,10 +1,17 @@
 /**
- * Dashboard API — endpoints.
+ * Dashboard API — authenticated endpoints.
  */
+
 import axiosPublic from './axios'
 
-export async function getDashboardOverview() {
-  const { data } = await axiosPublic.get('/api/dashboard/overview')
-  console.log('dashboard overview', data)
-  return data
+export async function getDashboardOverview(axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  try {
+    const { data } = await instance.get('/api/dashboard/overview')
+    console.log('[dashboardApi] overview success', data)
+    return data
+  } catch (err) {
+    console.error('[dashboardApi] overview failed', err?.response?.data || err.message || err)
+    throw err
+  }
 }

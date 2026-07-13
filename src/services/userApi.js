@@ -1,26 +1,52 @@
 import axiosPublic from './axios'
+import { authClient, getStoredAuthToken, updateUserProfile } from '@/lib/auth-client'
 
 /**
  * Fetch the current user's profile.
  */
-export async function getMyProfile() {
-  const { data } = await axiosPublic.get('/api/users/me', { withCredentials: true })
+export async function getMyProfile(axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const config = {
+    withCredentials: true,
+  }
+
+  if (!axiosSecure) {
+    const session = await authClient.getSession()
+    let token =
+      session?.data?.session?.token ||
+      session?.data?.token ||
+      session?.token ||
+      session?.data?.session?.accessToken ||
+      session?.data?.session?.access_token
+
+    if (!token) {
+      token = getStoredAuthToken()
+    }
+
+    if (token) {
+      config.headers = {
+        Authorization: `Bearer ${token}`,
+      }
+    }
+  }
+
+  const { data } = await instance.get('/api/users/me', config)
   return data
 }
 
 /**
- * Update the current user's profile.
+ * Update the current user's profile via backend API on port 5000.
  */
 export async function updateMyProfile(profileData) {
-  const { data } = await axiosPublic.put('/api/users/me', profileData)
-  return data
+  return await updateUserProfile(profileData)
 }
 
 /**
- * Fetch the current user's created lessons.
+ * Fetch the current user's created public lessons.
  */
-export async function getMyLessons(page = 1, limit = 6) {
-  const { data } = await axiosPublic.get('/api/users/me/public-lessons', {
+export async function getMyLessons(axiosSecure, page = 1, limit = 6) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.get('/api/users/me/public-lessons', {
     params: { page, limit },
   })
   return data

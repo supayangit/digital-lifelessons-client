@@ -76,6 +76,7 @@ export default function RegisterPage() {
     setGoogleLoading(true)
     try {
       await signInWithGoogle()
+      router.push('/')
     } catch {
       toast.error('Google sign up failed.')
       setGoogleLoading(false)

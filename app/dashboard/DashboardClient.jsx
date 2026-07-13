@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/useAuth'
 import { usePremium } from '@/hooks/usePremium'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getDashboardOverview } from '@/services/dashboardApi'
 import { StreakTracker } from '@/components/shared/StreakTracker'
 import { ErrorState } from '@/components/shared/ErrorState'
@@ -56,11 +57,18 @@ function StatCard({ label, value, icon: Icon, color, loading }) {
 function DashboardContent() {
   const { user } = useAuth()
   const { isPremium } = usePremium()
+  const axiosSecure = useAxiosSecure()
 
   const { data: overview, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard-overview'],
-    queryFn: () => getDashboardOverview(),
+    queryFn: () => getDashboardOverview(axiosSecure),
     retry: false,
+    onSuccess: (data) => {
+      console.log('[DashboardClient] overview data', data)
+    },
+    onError: (err) => {
+      console.error('[DashboardClient] overview fetch failed', err)
+    },
   })
 
   useEffect(() => {

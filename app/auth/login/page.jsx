@@ -59,6 +59,7 @@ function LoginForm() {
     setGoogleLoading(true)
     try {
       await signInWithGoogle()
+      router.push(redirect)
     } catch {
       toast.error('Google login failed.')
       setGoogleLoading(false)

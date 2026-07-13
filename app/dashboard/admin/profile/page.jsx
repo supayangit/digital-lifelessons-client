@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
 import { useRole } from '@/hooks/useRole'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { getAdminOverview } from '@/services/adminApi'
 import { getMyProfile } from '@/services/userApi'
 
@@ -34,16 +35,17 @@ export default function AdminProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
   const { role, isAdmin, isCeo, isPending: rolePending } = useRole()
+  const axiosSecure = useAxiosSecure()
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['my-profile'],
-    queryFn: () => getMyProfile(),
+    queryFn: () => getMyProfile(axiosSecure),
     retry: false,
   })
 
   const { data: overview, isLoading: overviewLoading } = useQuery({
     queryKey: ['admin-overview'],
-    queryFn: () => getAdminOverview(),
+    queryFn: () => getAdminOverview(axiosSecure),
     enabled: isAdmin,
     retry: false,
   })

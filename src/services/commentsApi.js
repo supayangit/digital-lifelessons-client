@@ -12,14 +12,16 @@ export async function getComments(lessonId, page = 1, limit = 10) {
   return data
 }
 
-export async function addComment(lessonId, content) {
-  const { data } = await axiosPublic.post('/api/comments', { lessonId, content })
+export async function addComment(lessonId, content, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.post('/api/comments', { lessonId, content })
   console.log(`[CommentsAPI] Comment posted for lesson ${lessonId}`, data)
   return data
 }
 
-export async function deleteComment(commentId) {
-  const { data } = await axiosPublic.delete(`/api/comments/${commentId}`)
+export async function deleteComment(commentId, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.delete(`/api/comments/${commentId}`)
   console.log(`[CommentsAPI] Deleted comment ${commentId}`, data)
   return data
 }

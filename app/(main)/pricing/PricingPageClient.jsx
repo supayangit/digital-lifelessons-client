@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useRole } from '@/hooks/useRole'
 import { usePremium } from '@/hooks/usePremium'
+import { useAxiosSecure } from '@/hooks/useAxiosSecure'
 import { createCheckoutSession } from '@/services/paymentsApi'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -61,11 +62,12 @@ function CheckIcon({ value }) {
 export default function PricingPageClient() {
   const { isPending: rolePending } = useRole()
   const { isPremium } = usePremium()
+  const axiosSecure = useAxiosSecure()
   const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   const hasStripeKey = Boolean(stripePublishableKey)
 
   const { mutate: checkout, isPending } = useMutation({
-    mutationFn: () => createCheckoutSession(),
+    mutationFn: () => createCheckoutSession(axiosSecure),
     onSuccess: (data) => {
       if (data?.url) {
         window.location.href = data.url

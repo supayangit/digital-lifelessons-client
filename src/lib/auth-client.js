@@ -66,6 +66,8 @@ export const authClient = createAuthClient({
  */
 export async function signup({ name, image, email, password }) {
   try {
+    if (!isBrowser) throw new Error('signup must be called from the browser')
+
     const response = await authClient.signUp.email({
       name,
       image,
@@ -84,6 +86,8 @@ export async function signup({ name, image, email, password }) {
  */
 export async function login({ email, password }) {
   try {
+    if (!isBrowser) throw new Error('login must be called from the browser')
+
     const response = await authClient.signIn.email({
       email,
       password,
@@ -115,6 +119,8 @@ export async function login({ email, password }) {
  */
 export async function signInWithGoogle() {
   try {
+    if (!isBrowser) throw new Error('signInWithGoogle must be called from the browser')
+
     const response = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${typeof window !== "undefined" ? window.location.origin : ""}/`,
@@ -145,6 +151,18 @@ export async function signInWithGoogle() {
  */
 export async function logout() {
   try {
+    if (!isBrowser) {
+      // Still attempt server-side signout but also clear any stored token when in browser
+      try {
+        const response = await authClient.signOut();
+        clearStoredAuthToken()
+        return response
+      } catch (e) {
+        clearStoredAuthToken()
+        throw e
+      }
+    }
+
     const response = await authClient.signOut();
     clearStoredAuthToken()
     return response;

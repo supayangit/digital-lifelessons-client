@@ -53,26 +53,29 @@ export async function getMostSavedLessons() {
 }
 
 /**
- * Create a new lesson.
+ * Create a new lesson (authenticated).
  */
-export async function createLesson(lessonData) {
-  const { data } = await axiosPublic.post('/api/lessons', lessonData)
+export async function createLesson(lessonData, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.post('/api/lessons', lessonData)
   return data
 }
 
 /**
- * Update an existing lesson.
+ * Update an existing lesson (authenticated).
  */
-export async function updateLesson(id, lessonData) {
-  const { data } = await axiosPublic.put(`/api/lessons/${id}`, lessonData)
+export async function updateLesson(id, lessonData, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.put(`/api/lessons/${id}`, lessonData)
   return data
 }
 
 /**
- * Delete a lesson.
+ * Delete a lesson (authenticated).
  */
-export async function deleteLesson(id) {
-  const { data } = await axiosPublic.delete(`/api/lessons/${id}`)
+export async function deleteLesson(id, axiosSecure) {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.delete(`/api/lessons/${id}`)
   return data
 }
 
@@ -80,7 +83,8 @@ export async function deleteLesson(id) {
  * Toggle lesson visibility (authenticated).
  */
 export async function toggleVisibility(id, axiosSecure) {
-  const { data } = await axiosSecure.patch(`/api/lessons/${id}/visibility`)
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.patch(`/api/lessons/${id}/visibility`)
   return data
 }
 
@@ -88,7 +92,8 @@ export async function toggleVisibility(id, axiosSecure) {
  * Toggle lesson access level between free/premium (authenticated).
  */
 export async function toggleAccessLevel(id, axiosSecure) {
-  const { data } = await axiosSecure.patch(`/api/lessons/${id}/access-level`)
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.patch(`/api/lessons/${id}/access-level`)
   return data
 }
 
@@ -96,8 +101,10 @@ export async function toggleAccessLevel(id, axiosSecure) {
  * Fetch user's own lessons (authenticated).
  */
 export async function getMyLessons(axiosSecure, page = 1, limit = 10) {
-  const { data } = await axiosSecure.get('/api/lessons/my-lessons', {
+  const instance = axiosSecure || axiosPublic
+  const { data } = await instance.get('/api/lessons/my-lessons', {
     params: { page, limit },
   })
+  console.log('[lessonApi] getMyLessons', { page, limit, data })
   return data
 }
