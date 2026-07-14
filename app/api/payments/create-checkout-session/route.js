@@ -41,7 +41,7 @@ export async function POST(req) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id || session.user._id || session.user.userId
+    const userId = session.user._id || session.user.id || session.user.userId
     const origin = getRequestOrigin(req)
     const stripe = getStripe()
     const priceId = process.env.STRIPE_PRICE_ID

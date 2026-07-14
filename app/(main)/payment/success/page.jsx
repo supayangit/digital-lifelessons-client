@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Crown, BookOpen, ArrowRight, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 function SuccessCheckmark() {
   return (
@@ -34,6 +36,26 @@ const NEXT_STEPS = [
 ]
 
 export default function PaymentSuccessPage() {
+  const searchParams = useSearchParams()
+  const sessionId = searchParams?.get('session_id')
+
+  useEffect(() => {
+    if (!sessionId) return
+
+    const confirmPremium = async () => {
+      try {
+        await fetch(`/api/payments/confirm-checkout-session?session_id=${encodeURIComponent(sessionId)}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      } catch (error) {
+        console.error('Failed to confirm premium session:', error)
+      }
+    }
+
+    confirmPremium()
+  }, [sessionId])
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="max-w-lg w-full text-center py-20">

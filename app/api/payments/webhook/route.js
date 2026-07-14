@@ -14,10 +14,18 @@ function getStripe() {
 
 function buildUserFilter(userId) {
   if (!userId) return null
-  if (ObjectId.isValid(userId)) {
-    return { _id: new ObjectId(userId) }
+
+  const normalizedUserId = String(userId)
+  const filters = []
+
+  if (ObjectId.isValid(normalizedUserId)) {
+    filters.push({ _id: new ObjectId(normalizedUserId) })
   }
-  return { id: String(userId) }
+
+  filters.push({ id: normalizedUserId })
+  filters.push({ userId: normalizedUserId })
+
+  return { $or: filters }
 }
 
 export async function POST(req) {
@@ -52,7 +60,7 @@ export async function POST(req) {
       const filter = buildUserFilter(userId)
       if (filter) {
         try {
-          await usersCol.updateOne(
+          const result = await usersCol.updateOne(
             filter,
             {
               $set: {
@@ -61,6 +69,10 @@ export async function POST(req) {
               },
             }
           )
+
+          if (!result.matchedCount) {
+            console.warn('Stripe webhook: no user found for metadata.userId', userId)
+          }
         } catch (error) {
           console.error('Failed to update user premium status:', error)
         }
