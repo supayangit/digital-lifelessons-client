@@ -36,9 +36,8 @@ export async function GET(req) {
       ? await resolveAuthSession(auth, headers)
       : null
 
-    if (!session?.user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Allow unauthenticated confirmation when Stripe session metadata contains a userId
+    const hasAuthUser = Boolean(session?.user)
 
     const url = new URL(req.url)
     const sessionId = url.searchParams.get('session_id')
@@ -55,6 +54,11 @@ export async function GET(req) {
     }
 
     const metadataUserId = checkoutSession.metadata?.userId
+    if (!hasAuthUser && !metadataUserId) {
+      // No authenticated user and no metadata to resolve user
+      return Response.json({ error: 'Unauthorized or missing session metadata' }, { status: 401 })
+    }
+
     const userId = metadataUserId || session.user._id || session.user.id || session.user.userId
     const filter = buildUserFilter(userId)
 
@@ -62,17 +66,11 @@ export async function GET(req) {
       return Response.json({ error: 'Unable to resolve user for premium activation' }, { status: 400 })
     }
 
-    const usersCol = db.collection('user')
-    const result = await usersCol.updateOne(
-      filter,
-      {
-        $set: {
-          isPremium: true,
-          premiumSince: new Date().toISOString(),
-        },
-      }
-    )
+    console.log('[v0] confirm-checkout-session debug:', { sessionId, metadataUserId, authUser: hasAuthUser })
 
+    const usersCol = db.collection('user')
+    const result = await usersCol.updateOne(filter, { $set: { isPremium: true, premiumSince: new Date().toISOString() } })
+    console.log('[v0] confirm-checkout-session update result:', { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount })
     if (!result.matchedCount) {
       console.warn('Stripe confirm endpoint: no user found for', userId)
       return Response.json({ error: 'No matching user found' }, { status: 404 })

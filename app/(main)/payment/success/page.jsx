@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Crown, BookOpen, ArrowRight, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { useAuth } from '@/hooks/useAuth'
 
 function SuccessCheckmark() {
   return (
@@ -35,6 +36,8 @@ const NEXT_STEPS = [
 ]
 
 export default function PaymentSuccessPage() {
+  const { refetch } = useAuth()
+
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -44,17 +47,24 @@ export default function PaymentSuccessPage() {
 
     const confirmPremium = async () => {
       try {
-        await fetch(`/api/payments/confirm-checkout-session?session_id=${encodeURIComponent(sessionId)}`, {
+        const response = await fetch(`/api/payments/confirm-checkout-session?session_id=${encodeURIComponent(sessionId)}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         })
+
+        if (response.ok) {
+          await refetch()
+        } else {
+          const errorData = await response.json().catch(() => null)
+          console.error('Failed to confirm premium session:', errorData || response.statusText)
+        }
       } catch (error) {
         console.error('Failed to confirm premium session:', error)
       }
     }
 
     confirmPremium()
-  }, [])
+  }, [refetch])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
