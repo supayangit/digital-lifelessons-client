@@ -47,7 +47,9 @@ export default function PaymentSuccessPage() {
 
     const confirmPremium = async () => {
       try {
-        const response = await fetch(`/api/payments/confirm-checkout-session?session_id=${encodeURIComponent(sessionId)}`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+        const backendUrl = `${apiUrl}/api/payments/confirm-checkout-session?session_id=${encodeURIComponent(sessionId)}`
+        const response = await fetch(backendUrl, {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
